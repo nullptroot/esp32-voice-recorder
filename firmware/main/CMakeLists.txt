@@ -1,0 +1,39 @@
+idf_component_register(
+    SRCS
+        "app_main.c"
+        "app_config.c"
+        "app_status.c"
+        "logbuf.c"
+        "led_button.c"
+        "mic_i2s.c"
+        "vad.c"
+        "wav_writer.c"
+        "sd_store.c"
+        "time_sync.c"
+        "uploader.c"
+        "web_config.c"
+        "net_wifi.c"
+        "recorder.c"
+    INCLUDE_DIRS "."
+    EMBED_TXTFILES "index.html"
+    REQUIRES
+        driver
+        esp_driver_i2s
+        esp_driver_spi
+        esp_driver_sdspi
+        esp_driver_gpio
+        sdmmc
+        fatfs
+        esp_http_client
+        esp_http_server
+        esp_wifi
+        esp_netif
+        esp_event
+        esp_timer
+        nvs_flash
+        json
+        mbedtls
+        app_update
+        bootloader_support
+        lwip
+)

@@ -1,0 +1,14 @@
+# 构建产物
+firmware/build/
+firmware/sdkconfig
+firmware/sdkconfig.old
+firmware/managed_components/
+# 虚拟环境
+.venv-backend/
+backend-min/.venv-backend/
+__pycache__/
+*.pyc
+# 运行数据
+backend-min/storage/
+# 临时
+*.log

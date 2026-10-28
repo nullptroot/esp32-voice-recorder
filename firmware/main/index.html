@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>录音豆 · 设备配置</title>
+<style>
+  :root { --bg:#0f1216; --card:#171c22; --line:#252d36; --fg:#e6edf3; --dim:#8b98a5;
+          --acc:#3fb950; --warn:#d29922; --err:#f85149; --blue:#58a6ff; }
+  * { box-sizing: border-box; }
+  body { margin:0; background:var(--bg); color:var(--fg);
+         font-family: system-ui,-apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif; }
+  header { padding:18px 22px; border-bottom:1px solid var(--line); display:flex;
+           align-items:center; gap:12px; flex-wrap:wrap; }
+  header h1 { font-size:18px; margin:0; font-weight:600; letter-spacing:.5px; }
+  header .badge { font-size:12px; padding:3px 9px; border-radius:999px; background:#1f2933;
+                  color:var(--dim); border:1px solid var(--line); }
+  header .badge.on { color:var(--acc); border-color:#1d3d25; background:#132019; }
+  main { max-width:1100px; margin:0 auto; padding:18px 16px 60px; display:grid;
+         grid-template-columns: repeat(auto-fit,minmax(330px,1fr)); gap:16px; }
+  .card { background:var(--card); border:1px solid var(--line); border-radius:12px; padding:16px; }
+  .card h2 { font-size:14px; margin:0 0 12px; color:var(--dim); font-weight:600;
+             text-transform:uppercase; letter-spacing:.08em; }
+  .row { display:flex; gap:10px; flex-wrap:wrap; }
+  .stat { flex:1 1 90px; background:#12171d; border:1px solid var(--line); border-radius:9px;
+          padding:9px 11px; }
+  .stat .k { font-size:11px; color:var(--dim); }
+  .stat .v { font-size:15px; margin-top:2px; font-variant-numeric:tabular-nums; }
+  label.f { display:block; margin:10px 0 4px; font-size:12px; color:var(--dim); }
+  input,select { width:100%; background:#0e1218; color:var(--fg); border:1px solid var(--line);
+                 border-radius:8px; padding:8px 10px; font-size:13px; }
+  input[type=checkbox] { width:auto; }
+  .chk { display:flex; align-items:center; gap:8px; margin:9px 0; font-size:13px; }
+  .grid2 { display:grid; grid-template-columns:1fr 1fr; gap:0 12px; }
+  button { background:#21262d; color:var(--fg); border:1px solid var(--line); border-radius:8px;
+           padding:8px 13px; font-size:13px; cursor:pointer; }
+  button:hover { background:#2a313a; }
+  button.primary { background:#1f6feb; border-color:#1f6feb; }
+  button.danger { background:#7d1a1a; border-color:#a32626; }
+  button.ok { background:#1a7f37; border-color:#1a7f37; }
+  #toast { position:fixed; bottom:20px; left:50%; transform:translateX(-50%);
+           background:#21262d; border:1px solid var(--line); border-radius:9px; padding:10px 16px;
+           font-size:13px; opacity:0; transition:.25s; pointer-events:none; max-width:80vw; }
+  #toast.show { opacity:1; }
+  table { width:100%; border-collapse:collapse; font-size:12px; }
+  th,td { text-align:left; padding:5px 4px; border-bottom:1px solid var(--line); }
+  th { color:var(--dim); font-weight:500; }
+  pre#log { background:#0b0e12; border:1px solid var(--line); border-radius:8px; padding:10px;
+            height:220px; overflow:auto; font-size:11px; line-height:1.45; color:#9fb0c0;
+            margin:0; white-space:pre-wrap; word-break:break-all; }
+  .wide { grid-column: 1/-1; }
+  .meter { height:6px; background:#12171d; border-radius:4px; overflow:hidden; margin-top:6px; }
+  .meter > i { display:block; height:100%; width:0; background:linear-gradient(90deg,#3fb950,#d29922,#f85149); transition:width .2s; }
+</style>
+</head>
+<body>
+<header>
+  <h1>🎙 录音豆 · 设备配置</h1>
+  <span class="badge" id="b-state">状态: -</span>
+  <span class="badge" id="b-wifi">WiFi: -</span>
+  <span class="badge" id="b-ip">IP: -</span>
+  <span class="badge" id="b-time">时间: -</span>
+</header>
+
+<main>
+  <section class="card">
+    <h2>运行状态</h2>
+    <div class="row">
+      <div class="stat"><div class="k">SD 可用</div><div class="v" id="s-sd">-</div></div>
+      <div class="stat"><div class="k">待上传</div><div class="v" id="s-pending">-</div></div>
+      <div class="stat"><div class="k">已上传</div><div class="v" id="s-uploaded">-</div></div>
+      <div class="stat"><div class="k">本次录音</div><div class="v" id="s-recsec">-</div></div>
+      <div class="stat"><div class="k">LM393 DO</div><div class="v" id="s-snd">-</div></div>
+    </div>
+    <label class="f">实时电平 (dBFS) <span id="s-lvltxt">-</span></label>
+    <div class="meter"><i id="s-level"></i></div>
+    <div class="row" style="margin-top:14px">
+      <button class="primary" onclick="act('/api/record/start')">▶ 开始录音</button>
+      <button onclick="act('/api/record/stop')">■ 停止</button>
+      <button class="ok" onclick="act('/api/upload')">⬆ 立即上传</button>
+      <button onclick="checkHealth()">❤ 服务器检查</button>
+    </div>
+    <div style="font-size:12px;color:var(--dim);margin-top:10px" id="s-msg"></div>
+  </section>
+
+  <section class="card">
+    <h2>网络</h2>
+    <label class="f">WiFi 名称</label>
+    <input id="wifi_ssid" placeholder="SSID">
+    <div class="row" style="margin-top:8px">
+      <button onclick="scanWifi()">扫描 WiFi</button>
+      <select id="ssid-list" style="flex:1" onchange="if(this.value)document.getElementById('wifi_ssid').value=this.value">
+        <option value="">（扫描结果）</option>
+      </select>
+    </div>
+    <label class="f">WiFi 密码</label>
+    <input id="wifi_pass" type="text" placeholder="password">
+    <label class="f">后端地址</label>
+    <input id="server_url" placeholder="http://192.168.5.36:8000">
+    <label class="f">设备 ID</label>
+    <input id="device_id" placeholder="esp32s3-001">
+  </section>
+
+  <section class="card">
+    <h2>录音参数</h2>
+    <div class="grid2">
+      <div><label class="f">采样率</label>
+        <select id="sample_rate">
+          <option value="16000">16000 Hz</option>
+          <option value="8000">8000 Hz</option>
+          <option value="32000">32000 Hz</option>
+        </select></div>
+      <div><label class="f">增益 (左移位数)</label>
+        <select id="gain_shift"><option value="0">0 (0dB)</option><option value="1">1 (+6dB)</option>
+        <option value="2">2 (+12dB)</option><option value="3">3 (+18dB)</option></select></div>
+      <div><label class="f">分段时长 (秒)</label><input id="segment_seconds" type="number" min="5"></div>
+      <div><label class="f">最长录音 (秒)</label><input id="max_record_seconds" type="number" min="5"></div>
+      <div><label class="f">预录/VAD 窗口 (ms)</label><input id="pre_record_ms" type="number" min="300"></div>
+      <div><label class="f">静音停录 (ms, 0=不定时停)</label><input id="silence_stop_ms" type="number" min="0"></div>
+      <div><label class="f">误触发冷却 (秒)</label><input id="cooldown_seconds" type="number" min="0"></div>
+      <div><label class="f">VAD 阈值 (dB)</label><input id="vad_threshold_db" type="number" min="2" max="40"></div>
+    </div>
+    <div class="chk"><input type="checkbox" id="vad_enable"><label for="vad_enable">启用 VAD 二次确认</label></div>
+    <div class="chk"><input type="checkbox" id="wifi_off_while_recording"><label for="wifi_off_while_recording">录音时关闭 WiFi</label></div>
+  </section>
+
+  <section class="card">
+    <h2>上传 / 上传策略</h2>
+    <div class="chk"><input type="checkbox" id="upload_on_record"><label for="upload_on_record">录完立即上传</label></div>
+    <div class="chk"><input type="checkbox" id="upload_on_boot"><label for="upload_on_boot">开机扫描补传</label></div>
+    <div class="chk"><input type="checkbox" id="delete_after_upload"><label for="delete_after_upload">上传成功后删除本地文件</label></div>
+    <div class="grid2">
+      <div><label class="f">本地保留 (天)</label><input id="keep_days" type="number" min="0"></div>
+      <div><label class="f">最大重试次数</label><input id="upload_max_retry" type="number" min="1"></div>
+      <div><label class="f">退避初值 (ms)</label><input id="upload_backoff_ms" type="number" min="200"></div>
+      <div><label class="f">SD SPI 时钟 (kHz)</label><input id="sd_freq_khz" type="number" min="4000" max="40000"></div>
+      <div><label class="f">SD 挂载失败时格式化</label>
+        <div class="chk" style="margin:6px 0"><input type="checkbox" id="format_sd_if_mount_failed"><label for="format_sd_if_mount_failed">允许自动格式化</label></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="card">
+    <h2>电源 / 模式</h2>
+    <div class="chk"><input type="checkbox" id="bench_mode"><label for="bench_mode">Bench 模式 (常醒 + 网页常驻)</label></div>
+    <div class="chk"><input type="checkbox" id="sleep_enable"><label for="sleep_enable">启用 EXT1 深度睡眠 (bench 模式下不生效)</label></div>
+    <div class="chk"><input type="checkbox" id="sound_active_low"><label for="sound_active_low">LM393 声音时输出低电平 (取消勾选=高有效)</label></div>
+    <p style="font-size:12px;color:var(--dim);line-height:1.6">
+      EXT1 唤醒脚: GPIO15 (LM393 DO, 低电平有效)。非 bench 模式下, 录音与上传结束后进入深睡,
+      由 LM393 拉低 GPIO15 唤醒。
+    </p>
+    <div class="row" style="margin-top:10px">
+      <button class="primary" onclick="saveConfig()">💾 保存配置</button>
+      <button onclick="reloadConfig()">↻ 重新读取</button>
+      <button class="danger" onclick="if(confirm('确定格式化 SD 卡? 所有录音将丢失'))act('/api/format','{\"confirm\":\"YES\"}')">格式化 SD</button>
+      <button class="danger" onclick="if(confirm('重启设备?'))act('/api/reboot')">重启</button>
+    </div>
+  </section>
+
+  <section class="card wide">
+    <h2>录音文件</h2>
+    <table><thead><tr><th>文件</th><th>大小</th><th>状态</th></tr></thead>
+      <tbody id="files"></tbody></table>
+    <div style="margin-top:10px"><button onclick="loadFiles()">刷新列表</button></div>
+  </section>
+
+  <section class="card wide">
+    <h2>设备日志</h2>
+    <pre id="log"></pre>
+    <div style="margin-top:10px"><button onclick="loadLog()">刷新日志</button></div>
+  </section>
+</main>
+<div id="toast"></div>
+
+<script>
+const $ = id => document.getElementById(id);
+let cfg = null;
+
+function toast(msg, ms=2200) {
+  const t = $('toast'); t.textContent = msg; t.classList.add('show');
+  clearTimeout(t._h); t._h = setTimeout(()=>t.classList.remove('show'), ms);
+}
+
+async function api(path, method='GET', body=null) {
+  const opt = { method, headers: {} };
+  if (body !== null) { opt.headers['Content-Type'] = 'application/json'; opt.body = body; }
+  const r = await fetch(path, opt);
+  const txt = await r.text();
+  let j = null; try { j = JSON.parse(txt); } catch(e) { throw new Error(txt.slice(0,200)); }
+  return j;
+}
+
+async function act(path, body=null) {
+  try {
+    const j = await api(path, 'POST', body);
+    toast(j.ok ? ('已执行: ' + path + (j.message? ' · '+j.message : '')) : ('失败: ' + (j.error||'unknown')));
+    setTimeout(refresh, 400);
+  } catch(e) { toast('请求失败: ' + e.message); }
+}
+
+async function checkHealth() {
+  try {
+    const j = await api('/api/health');
+    toast(j.message || (j.ok ? 'OK' : '失败'), 4000);
+  } catch(e) { toast('健康检查失败: ' + e.message); }
+}
+
+function fillConfig(c) {
+  for (const k of ['wifi_ssid','wifi_pass','server_url','device_id','sample_rate','gain_shift',
+                   'segment_seconds','max_record_seconds','pre_record_ms','silence_stop_ms',
+                   'cooldown_seconds','vad_threshold_db','keep_days','upload_max_retry','upload_backoff_ms']) {
+    if (c[k] !== undefined && $(k)) $(k).value = c[k];
+  }
+  for (const k of ['vad_enable','wifi_off_while_recording','upload_on_record','upload_on_boot',
+                   'delete_after_upload','format_sd_if_mount_failed','bench_mode','sleep_enable','sound_active_low','sd_freq_khz']) {
+    if (c[k] !== undefined && $(k)) $(k).checked = !!c[k];
+  }
+}
+
+async function reloadConfig() {
+  const j = await api('/api/config');
+  cfg = j.config; fillConfig(cfg); toast('已读取设备配置');
+}
+
+async function saveConfig() {
+  const out = {};
+  for (const k of ['wifi_ssid','wifi_pass','server_url','device_id','sample_rate','gain_shift',
+                   'segment_seconds','max_record_seconds','pre_record_ms','silence_stop_ms',
+                   'cooldown_seconds','vad_threshold_db','keep_days','upload_max_retry','upload_backoff_ms']) {
+    if ($(k)) out[k] = $(k).value;
+  }
+  for (const k of ['vad_enable','wifi_off_while_recording','upload_on_record','upload_on_boot',
+                   'delete_after_upload','format_sd_if_mount_failed','bench_mode','sleep_enable','sound_active_low','sd_freq_khz']) {
+    if ($(k)) out[k] = $(k).checked;
+  }
+  try {
+    const j = await api('/api/config', 'POST', JSON.stringify(out));
+    if (j.ok) { cfg = j.config; fillConfig(cfg); toast('配置已保存到设备 NVS'); }
+    else toast('保存失败: ' + (j.error || 'unknown'));
+  } catch(e) { toast('保存失败: ' + e.message); }
+}
+
+async function scanWifi() {
+  try {
+    const j = await api('/api/wifi/scan');
+    const sel = $('ssid-list'); sel.innerHTML = '<option value="">（选择扫描到的 WiFi）</option>';
+    (j.aps || []).forEach(a => {
+      const o = document.createElement('option');
+      o.value = a.ssid; o.textContent = a.ssid + '  (' + a.rssi + 'dBm)';
+      sel.appendChild(o);
+    });
+    toast('扫描到 ' + (j.count || 0) + ' 个 WiFi');
+  } catch(e) { toast('扫描失败: ' + e.message); }
+}
+
+async function refresh() {
+  try {
+    const s = await api('/api/status');
+    $('b-state').textContent = '状态: ' + s.state;
+    $('b-state').className = 'badge' + (s.state === 'recording' ? ' on' : '');
+    $('b-wifi').textContent = 'WiFi: ' + (s.wifi_connected ? '已连接' : '未连接');
+    $('b-wifi').className = 'badge' + (s.wifi_connected ? ' on' : '');
+    $('b-ip').textContent = 'IP: ' + (s.ip || '-');
+    $('b-time').textContent = '时间: ' + (s.time_trusted ? 'NTP 已同步' : '不可信(会话编号)');
+    $('b-time').className = 'badge' + (s.time_trusted ? ' on' : '');
+    $('s-sd').textContent = s.sd_mounted ? (s.sd_free_mb.toFixed(0) + 'MB') : '未挂载';
+    $('s-pending').textContent = s.pending_files;
+    $('s-uploaded').textContent = s.uploaded_files;
+    $('s-recsec').textContent = s.record_seconds + 's';
+    const snd = (s.sound_pin === 0 ? 'LOW' : 'HIGH') +
+                ((s.sound_active_low ? s.sound_pin === 0 : s.sound_pin !== 0) ? ' · 有声音' : ' · 安静');
+    $('s-snd').textContent = snd;
+    $('s-snd').style.color = ((s.sound_active_low ? s.sound_pin === 0 : s.sound_pin !== 0))
+        ? 'var(--warn)' : 'var(--dim)';
+    $('s-lvltxt').textContent = (s.level_db ?? -100) + (s.vad_speech ? ' · 人声' : '');
+    const pct = Math.max(0, Math.min(100, ((s.level_db ?? -100) + 80) / 80 * 100));
+    $('s-level').style.width = pct + '%';
+    const msgs = [];
+    if (s.last_error) msgs.push('⚠ ' + s.last_error);
+    if (s.last_upload) msgs.push('✓ 最近上传: ' + s.last_upload);
+    if (s.state === 'recording') msgs.push('● 正在录音 ' + s.record_seconds + 's');
+    $('s-msg').innerHTML = msgs.join('<br>');
+  } catch(e) { $('b-state').textContent = '状态: 连接失败'; }
+}
+
+async function loadFiles() {
+  try {
+    const j = await api('/api/files');
+    const tb = $('files'); tb.innerHTML = '';
+    (j.files || []).forEach(f => {
+      const tr = document.createElement('tr');
+      tr.innerHTML = '<td><a style="color:var(--blue)" href="/api/file?name=' +
+        encodeURIComponent(f.name) + '" download>' + f.name + '</a></td><td>' +
+        (f.size/1024).toFixed(0) + ' KB</td><td>' +
+        (f.uploaded ? '<span style="color:var(--acc)">已上传</span>' :
+                      '<span style="color:var(--warn)">待上传</span>') + '</td>';
+      tb.appendChild(tr);
+    });
+    if (!(j.files||[]).length) tb.innerHTML = '<tr><td colspan="3" style="color:var(--dim)">暂无文件</td></tr>';
+  } catch(e) { toast('读取文件列表失败: ' + e.message); }
+}
+
+async function loadLog() {
+  try {
+    const j = await api('/api/log');
+    $('log').textContent = (j.lines || []).join('\n');
+    $('log').scrollTop = $('log').scrollHeight;
+  } catch(e) {}
+}
+
+async function loadStatusMeta() {
+  try {
+    const s = await api('/api/status');
+    $('s-sd').title = s.firmware + ' / ' + s.server_url;
+  } catch(e) {}
+}
+
+(async function init() {
+  await reloadConfig();
+  await refresh();
+  await loadFiles();
+  await loadLog();
+  loadStatusMeta();
+  setInterval(refresh, 2000);
+  setInterval(loadLog, 5000);
+})();
+</script>
+</body>
+</html>
