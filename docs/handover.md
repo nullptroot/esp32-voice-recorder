@@ -15,6 +15,37 @@
 
 ---
 
+## 0.5 新会话怎么接手（5 分钟上手）
+
+### 读文档顺序
+1. `README.md` —— 工程结构、构建/烧录、验收清单（3 分钟）
+2. `docs/verification-report.md` —— 已经做了什么、修了哪些坑、SD 卡故障证据（5 分钟）
+3. `docs/backend-api.md` —— 设备↔后端契约（后续做后端必读）
+4. `docs/web-ui.md` —— 网页每个参数怎么用、怎么调
+5. 本文件 §6 待办 + §7 调试手册 —— 接着干什么
+
+### 环境自检（30 秒）
+```bash
+source ~/esp-idf-v5.5.6/export.sh && idf.py --version     # 期望: ESP-IDF v5.5.6
+curl -s http://127.0.0.1:8000/health || echo "后端没起: cd esp32/backend-min && ./run.sh"
+curl -s http://192.168.5.32/api/status | head -c 200 || echo "设备不在线，见下"
+```
+
+### 设备不在线时
+1. 串口看日志：`idf.py -p /dev/ttyUSB0 monitor`（打开串口会复位板子，属正常）；
+2. 串口里找 `wifi: 获得 IP:`，IP 可能已变（DHCP）；
+3. 都没输出 → 检查是否插的是 `/dev/ttyUSB0`（CH340，控制台在 UART0）、USB 是否供电；
+4. SD 卡锁死时设备仍能启动，只是录音失败（网页仍可访问，看 `/api/log`）。
+
+### 代码版本
+仓库已初始化 git，首个提交：`d2a03a5 录音豆 ESP32-S3 固件 + 极简验收后端 + 文档（首版交接）`。
+后续改动建议每完成一项就提交一次：
+```bash
+cd /home/mr4/esp32 && git add -A && git commit -m "说明这次改了什么"
+```
+
+---
+
 ## 1. 交付物地图
 
 ```
@@ -25,6 +56,7 @@
 ├── backend-server.md          # 原始需求文档（后端侧）
 ├── docs/
 │   ├── backend-api.md         # ⭐ 后端需要实现的完整接口协议（对外交付）
+│   ├── web-ui.md              # ⭐ 设备网页使用说明 + 每个参数的含义/建议值
 │   └── verification-report.md # ⭐ 本轮验证报告（证据 + 修复清单 + SD 故障诊断）
 ├── firmware/                  # ESP-IDF 工程（v5.5.6）
 │   ├── CMakeLists.txt / sdkconfig.defaults / partitions.csv
@@ -35,6 +67,9 @@
 │   └── storage/{audio/,uploads.db}
 └── .venv-backend/             # 后端依赖虚拟环境（已装好）
 ```
+
+### 版本管理
+仓库已 `git init` 并提交首版（`d2a03a5`，46 个文件）；`build/`、`sdkconfig`、venv、`storage/` 已在 `.gitignore` 中。
 
 ### 当前运行中的进程（重启机器后会没）
 
@@ -74,6 +109,8 @@ idf.py -p /dev/ttyUSB0 -b 460800 flash
 idf.py -p /dev/ttyUSB0 monitor    # 115200，Ctrl+] 退出
 ```
 
+- 首次全量构建约 2–3 分钟，增量构建约 40–60 秒；自动化环境里建议 `nohup ... &` 后轮询 `build.log`，避免长命令超时。
+- 确认烧进去的是新固件：串口首行 `boot: compile time ...` 应与本次 `idf.py build` 的时间一致，或核对 `build/recbean.bin` 的 SHA256 与启动日志里的 `ELF file SHA256`。
 - 串口：`/dev/ttyUSB0` = 板载 CH340（UART0 控制台）；`/dev/ttyACM0` = 原生 USB-Serial/JTAG，**同一颗芯片**，两者都能烧。
 - ⚠️ **打开串口会触发 DTR/RTS 复位板子**（属正常现象，抓完整启动日志时注意）。
 - ⚠️ 若烧录报 `port busy`：先杀掉占用串口的进程（例如自己开的 `mon.py`）。
@@ -274,7 +311,14 @@ LM393(GPIO15,高有效) ──EXT1──► 唤醒(或网页/按键触发)
 - 对比不同 GPIO 上下拉策略；1000mAh 电池估算续航。
 - 工具：USB 电流表或 INA219；串口日志记录唤醒次数。
 
-### P3-2 多设备与鉴权（后端侧）
+### P3-2 收尾项：`vad_enable` 与网页鉴权
+
+1. **`vad_enable` 目前是预留开关**（`app_config` 有字段、网页有勾选框，但 `recorder.c` 始终初始化 VAD）。
+   二选一：实现「关掉后不做静音停录/二次确认」或从网页与配置里移除，避免误导。
+2. **设备网页无鉴权**：同网段任何人都能改配置、下载录音。正式部署建议加反向代理基本认证，
+   或给 httpd 加一个简单的 `X-Auth-Token` 校验（配置项 + 页面带 header）。
+
+### P3-3 多设备与鉴权（后端侧）
 
 设备已发送 `X-Device-Id` 头与 `device_id` 字段，可直接做白名单/鉴权；无 TLS。
 
@@ -317,10 +361,60 @@ LM393(GPIO15,高有效) ──EXT1──► 唤醒(或网页/按键触发)
 6. **`CFG_VERSION` 变了会重置 NVS 配置**（WiFi/参数回默认），升级前告知用户。
 7. **改分区大小**（比如给 esp-sr 模型腾地方）需要改 `partitions.csv` + 重新烧分区表。
 8. **网页前端字段名必须与配置 JSON 键一致**，否则保存静默失效。
+9. **`vad_enable` 是预留开关**（当前不生效），改 VAD 行为要改 `recorder.c` 里对 `vad_frame()` 的使用方式。
 
 ---
 
-## 9. 交付前最后一次状态（2026-10-29 01:25）
+## 9. 出厂重置与环境还原
+
+### 只清配置（保留固件）
+```bash
+source ~/esp-idf-v5.5.6/export.sh
+esptool.py -p /dev/ttyUSB0 erase_region 0x9000 0x6000   # 擦 NVS，重启后回默认配置
+```
+
+### 全擦（含固件，之后再烧）
+```bash
+esptool.py -p /dev/ttyUSB0 erase_flash
+idf.py -p /dev/ttyUSB0 -b 460800 flash
+```
+
+### 后端数据重置
+```bash
+cd /home/mr4/esp32/backend-min && pkill -f "uvicorn app:app"; rm -rf storage; ./run.sh
+```
+
+---
+
+## 10. 已知良好启动日志（对照用）
+
+```text
+I (311) octal_psram: vendor id    : 0x0d (AP)
+I (354) esp_psram: Found 8MB PSRAM device
+I (921) main: ==== 录音豆 (recbean) 启动 ====
+I (926) main: 复位原因: 1, 深睡唤醒: 否
+I (938) cfg: 配置已从 NVS 载入 (ssid=..., server=http://192.168.5.36:8000, seg=900s)
+I (940) main: LM393 DO = GPIO15, 当前电平=0
+I (944) sd: SD SPI 时钟: 20000 kHz
+I (1023) sd: SD 挂载成功: /sdcard
+I (2918) wifi: 获得 IP: 192.168.5.32
+I (2920) main: 首次对时 (NTP)...
+I (3513) time: NTP 对时成功: 2026-10-29 00:15:16 (TZ=CST-8)
+I (3515) web: 配置网页已启动: http://<ip>/
+```
+若 `SD 挂载失败` → 见 §7；若 `WiFi 连接失败` → 检查 SSID/密码/路由器。
+
+### 30 分钟能做完的快速分诊
+| 时间 | 做什么 |
+|---|---|
+| 0–5 min | 环境自检 + 设备在线确认 + 网页打开 |
+| 5–15 min | 录 15s → 下载试听 → 上传 → 后端 `/api/uploads` 看到记录 |
+| 15–25 min | 若 SD 报错：`/api/sdtest` 定位 → `/api/sd/recover` 或断电 |
+| 25–30 min | 把结果记到 `docs/verification-report.md`，更新 git 提交 |
+
+---
+
+## 11. 交付前最后一次状态（2026-10-29 01:25）
 
 - 固件：已编译烧录（`build/recbean.bin` 1.1MB），设备在线 `192.168.5.32`，bench 模式；
 - 配置：`segment=900 / silence=5000 / gain=3 / sd_freq=20000 / bench=true / sleep=false`；
@@ -329,10 +423,11 @@ LM393(GPIO15,高有效) ──EXT1──► 唤醒(或网页/按键触发)
 
 ---
 
-## 10. 参考
+## 12. 参考
 
 - 需求：`hardware-device.md`、`backend-server.md`
 - 接线：`wire.md`
 - 后端协议：`docs/backend-api.md`
+- 网页用法：`docs/web-ui.md`
 - 验证报告（含证据与修复清单）：`docs/verification-report.md`
 - 快速上手：`README.md`
