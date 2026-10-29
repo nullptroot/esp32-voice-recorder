@@ -94,20 +94,17 @@ curl -s localhost:8000/health
 
 ## 5. 已知问题（本轮实测发现）
 
-### SD 卡坏块（硬件，需更换）
-本机这张 32GB TF 卡（卷标 `asdfg`）实测存在**漂移坏块**：原始块读自检 `/api/sdtest` 显示
+### ~~SD 卡坏块~~ → 已定位为**供电问题**（2026-10-29 晚已修复）
+本机这张 32GB TF 卡（卷标 `asdfg`）曾被判为「漂移坏块」：原始块读自检 `/api/sdtest` 显示
 某些块（先 29895 附近，后 7547 附近）稳定 CRC 报错，断电 5 秒可临时恢复、几分钟后复发。
-表现为「新建文件失败 / 文件时长字段为 0 / 删除 I/O error」。
 
-固件已做的缓解（换卡前可继续用）：
-- 64KB 簇格式化（`allocation_unit_size`），把 FAT+根目录压到前 ~5MB；
-- 打开文件失败时自动 `sd_store_recover()`（卸载→重新初始化→挂载→重试）；
-- WAV 关闭后用独立句柄回填头部并校验，失败重试；
-- 写入后校验目录项大小，损坏分段自动删除，不上传垃圾数据。
+**真因**：SD 卡模块板载 3.3V LDO，VCC 接 3V3 时压差不足 → 卡供电不稳 → 随机 CRC / 写失败。
+**VCC 改接 5V 后**，同一张卡 0–100MB 扫描 **0 错误**，格式化/60s 录音/连续 10 次录音/上传全部通过。
 
-**建议**：换正品 TF 卡（SanDisk / Samsung，16–32GB，High Endurance）。换卡后无需改代码。
+固件里为坏卡做的缓解（64KB 簇、`sd_store_recover()`、头部回填校验重试、损坏分段自动删除）保留，
+对好卡也无副作用。
 
-详见 [`docs/verification-report.md`](docs/verification-report.md)。
+详见 [`docs/verification-report.md`](docs/verification-report.md) §8。
 
 ## 6. 验证清单
 
@@ -123,3 +120,6 @@ curl -s localhost:8000/health
 | 8 | 重试 | 关服务再录，再开服务上传 | 文件保留，补传成功 |
 | 9 | 时间回退 | WiFi 改为错误 SSID | 文件名 `mic1_session-XXXX_partN.wav`，`time_trusted=false` |
 | 10 | 深睡 | bench 关 + sleep 开 + 重启 | 日志 `进入 EXT1 深度睡眠`；发声唤醒后自动录音 |
+
+> 2026-10-29 晚实测：2/4/6/7/10 均 ✅；连续 10 次录音 10/10 ✅；深睡唤醒→上传 22.3s ✅。
+> 未测：5（分段，昨天 6s 分段已验证过）、8（重试，10-28 已验证）、9（见 P1-4 的坑，慎测）。
