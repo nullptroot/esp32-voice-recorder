@@ -104,6 +104,7 @@ static void status_to_json(cJSON *o)
     cJSON_AddNumberToObject(o, "sound_pin", gpio_get_level(PIN_SND_DETECT));
     cJSON_AddNumberToObject(o, "sound_hits", st.sound_hits);
     cJSON_AddBoolToObject(o, "sound_active_low", c->sound_active_low);
+    cJSON_AddNumberToObject(o, "cfg_window_left", st.cfg_window_left);
 }
 
 static esp_err_t h_index(httpd_req_t *req)

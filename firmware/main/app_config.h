@@ -78,6 +78,11 @@ void     app_config_session_bump(void);
 uint32_t app_config_boot_session(void);
 void     app_config_set_boot_session(uint32_t v);
 
+// 连续快速复位计数 (存 NVS): 用于"连按 3 次复位进入配置模式"的救命入口。
+// 每次启动 +1; 正常运行 15 秒或进入深睡前清零。
+uint32_t app_config_rst_streak_bump(void);
+void     app_config_rst_streak_clear(void);
+
 #ifdef __cplusplus
 }
 #endif

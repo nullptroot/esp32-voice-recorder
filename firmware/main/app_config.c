@@ -11,6 +11,7 @@ static const char *TAG = "cfg";
 static const char *NVS_NS = "recbean";
 static const char *KEY_CFG = "cfg";
 static const char *KEY_BOOT_SESSION = "bsession";
+static const char *KEY_RST_STREAK = "rst_streak";
 
 static app_config_t s_cfg;
 static nvs_handle_t s_nvs = 0;
@@ -308,4 +309,33 @@ void app_config_session_bump(void)
     nvs_set_u32(s_nvs, KEY_BOOT_SESSION, v);
     nvs_commit(s_nvs);
     s_boot_session = v;
+}
+
+// ---------------- 连续快速复位计数 ----------------
+// 用途: 设备深睡后网页打不开, 用户手边只有 RST 键/拔插 USB 时, 连按 3 次复位
+// 就能在本轮启动强制打开配置窗口 (见 app_main.c 的 cfg_window_*)。
+uint32_t app_config_rst_streak_bump(void)
+{
+    uint32_t v = 0;
+    if (s_nvs) {
+        if (nvs_get_u32(s_nvs, KEY_RST_STREAK, &v) != ESP_OK) {
+            v = 0;
+        }
+    }
+    v++;
+    if (s_nvs) {
+        nvs_set_u32(s_nvs, KEY_RST_STREAK, v);
+        nvs_commit(s_nvs);
+    }
+    return v;
+}
+
+void app_config_rst_streak_clear(void)
+{
+    uint32_t v = 0;
+    if (!s_nvs) return;
+    if (nvs_get_u32(s_nvs, KEY_RST_STREAK, &v) == ESP_OK && v != 0) {
+        nvs_set_u32(s_nvs, KEY_RST_STREAK, 0);
+        nvs_commit(s_nvs);
+    }
 }

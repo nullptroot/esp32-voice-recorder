@@ -45,6 +45,7 @@ typedef struct {
 
     int         sound_pin;         // GPIO15 当前电平
     uint32_t    sound_hits;        // 电平跳变次数 (调试 LM393 用)
+    uint16_t    cfg_window_left;   // 配置窗口剩余秒数 (0 = 没在窗口里)
 
     char        last_error[128];
     char        last_upload[128];

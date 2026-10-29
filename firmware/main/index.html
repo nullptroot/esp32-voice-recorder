@@ -60,6 +60,7 @@
   <span class="badge" id="b-wifi">WiFi: -</span>
   <span class="badge" id="b-ip">IP: -</span>
   <span class="badge" id="b-time">时间: -</span>
+  <span class="badge" id="b-cfgwin" style="display:none">⚙ 配置窗口: -</span>
 </header>
 
 <main>
@@ -147,7 +148,9 @@
     <div class="chk"><input type="checkbox" id="sound_active_low"><label for="sound_active_low">LM393 声音时输出低电平 (取消勾选=高有效)</label></div>
     <p style="font-size:12px;color:var(--dim);line-height:1.6">
       EXT1 唤醒脚: GPIO15 (LM393 DO, 低电平有效)。非 bench 模式下, 录音与上传结束后进入深睡,
-      由 LM393 拉低 GPIO15 唤醒。
+      由 LM393 拉低 GPIO15 唤醒。<br>
+      ⚠️ <b>深睡时网页不可用</b>。要改配置：<b>上电/复位（拔插 USB 或按 RST）后 120 秒内</b>打开本页；
+      或者<b>连续快速复位 3 次</b>进入 5 分钟配置模式。
     </p>
     <div class="row" style="margin-top:10px">
       <button class="primary" onclick="saveConfig()">💾 保存配置</button>
@@ -263,6 +266,14 @@ async function refresh() {
     $('b-ip').textContent = 'IP: ' + (s.ip || '-');
     $('b-time').textContent = '时间: ' + (s.time_trusted ? 'NTP 已同步' : '不可信(会话编号)');
     $('b-time').className = 'badge' + (s.time_trusted ? ' on' : '');
+    const cw = s.cfg_window_left || 0;
+    if (cw > 0) {
+      $('b-cfgwin').style.display = '';
+      $('b-cfgwin').textContent = '⚙ 配置窗口: ' + cw + 's 后进深睡';
+      $('b-cfgwin').className = 'badge on';
+    } else {
+      $('b-cfgwin').style.display = 'none';
+    }
     $('s-sd').textContent = s.sd_mounted ? (s.sd_free_mb.toFixed(0) + 'MB') : '未挂载';
     $('s-pending').textContent = s.pending_files;
     $('s-uploaded').textContent = s.uploaded_files;

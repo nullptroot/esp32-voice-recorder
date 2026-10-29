@@ -36,6 +36,15 @@ static bool s_busy = false;
 static volatile bool s_reboot_pending = false;
 static bool s_wake_from_ext1 = false;
 
+// 配置窗口: 非 bench 模式下, 上电/复位后先开这么久的网页, 没人管再进深睡。
+// 否则一旦设成 bench=false, 网页就再也进不去 (深睡会关 WiFi + httpd)。
+#define CFG_WINDOW_S        120    // 秒; 0 = 关闭上电配置窗口
+#define RST_STREAK_LIMIT    3      // 连续快速复位多少次 -> 强制配置模式
+#define RST_STREAK_CLEAR_S  15     // 正常运行这么久就认为不是"连续复位"
+
+static bool    s_cfg_window = false;
+static int64_t s_cfg_window_end_us = 0;
+
 static void enter_deep_sleep(void);
 
 static void enqueue(trigger_t t)
@@ -98,6 +107,44 @@ static void on_web_action(web_action_t act, void *user)
     }
 }
 
+// ---------------- 配置窗口 ----------------
+// 深睡模式 (bench=false + sleep=true) 下 WiFi/httpd 都是关的, 网页进不去。
+// 这里提供两个"重新进网页"的入口:
+//   1) 每次上电/复位 (非 LM393 唤醒) 自动开 CFG_WINDOW_S 秒配置窗口;
+//   2) 连续快速复位 RST_STREAK_LIMIT 次 -> 强制本轮开配置窗口 (深睡中也能救回来)。
+static void cfg_window_open(int secs)
+{
+    s_cfg_window = true;
+    s_cfg_window_end_us = esp_timer_get_time() + (int64_t)secs * 1000000;
+    web_config_start(on_web_action, NULL);
+    led_set(LED_CONFIG);
+    STATUS_SET(cfg_window_left, (uint16_t)secs);
+    ESP_LOGW(TAG, "配置窗口: %d 秒内可打开 http://<ip>/ 改配置, 之后自动进深睡", secs);
+}
+
+static uint32_t cfg_window_left(void)
+{
+    if (!s_cfg_window) return 0;
+    int64_t left = (s_cfg_window_end_us - esp_timer_get_time()) / 1000000;
+    return left > 0 ? (uint32_t)left : 0;
+}
+
+static bool cfg_window_active(void)
+{
+    if (!s_cfg_window) return false;
+    if (esp_timer_get_time() < s_cfg_window_end_us) return true;
+    s_cfg_window = false;
+    STATUS_SET(cfg_window_left, 0);
+    ESP_LOGI(TAG, "配置窗口结束");
+    return false;
+}
+
+static void rst_streak_clear_cb(void *arg)
+{
+    (void)arg;
+    app_config_rst_streak_clear();
+}
+
 // ---------------- 电源 / 深睡 ----------------
 // LM393 当前是否处于"检测到声音"的有效电平
 static bool sound_active(void)
@@ -117,6 +164,9 @@ static void enter_deep_sleep(void)
         ESP_LOGW(TAG, "持续有声音, 仍然进入睡眠 (可能立即被唤醒)");
     }
     ESP_LOGI(TAG, "进入 EXT1 深度睡眠, 唤醒脚 GPIO%d (低电平触发)", PIN_SND_DETECT);
+
+    // 正常进睡 -> 清掉"连续复位"计数, 避免深睡唤醒被误判成连按复位
+    app_config_rst_streak_clear();
 
     web_config_stop();
     net_wifi_disconnect();
@@ -231,7 +281,9 @@ static void worker_task(void *arg)
         const app_config_t *c = app_config_get();
         // 注意: 必须等队列里的触发都处理完再睡。LM393 唤醒时 "开机补传 + 录音确认"
         // 会连续入队, 若这里直接睡会把后面的录音触发丢掉 (曾导致唤醒后不录音)。
-        if (!c->bench_mode && c->sleep_enable && uxQueueMessagesWaiting(s_q) == 0) {
+        // 配置窗口内也不睡, 否则用户改到一半网页就没了。
+        if (!c->bench_mode && c->sleep_enable && uxQueueMessagesWaiting(s_q) == 0 &&
+            !cfg_window_active()) {
             enter_deep_sleep();
         }
     }
@@ -244,11 +296,32 @@ void app_main(void)
     ESP_LOGI(TAG, "==== 录音豆 (recbean) 启动 ====");
 
     esp_reset_reason_t rr = esp_reset_reason();
-    s_wake_from_ext1 = (esp_sleep_get_wakeup_cause() == ESP_SLEEP_WAKEUP_EXT1);
+    // 注意: esp_sleep_get_wakeup_cause() 在软件重启/上电后仍可能保留上次深睡的唤醒源,
+    // 必须同时要求复位原因 = 深睡唤醒, 否则"网页重启"会被误判成 LM393 唤醒而触发录音。
+    s_wake_from_ext1 = (rr == ESP_RST_DEEPSLEEP) &&
+                       (esp_sleep_get_wakeup_cause() == ESP_SLEEP_WAKEUP_EXT1);
     ESP_LOGI(TAG, "复位原因: %d, 深睡唤醒: %s", (int)rr, s_wake_from_ext1 ? "EXT1 (LM393)" : "否");
 
     app_config_init();
     const app_config_t *cfg = app_config_get();
+
+    // 连续快速复位检测 (深睡后网页进不去时的救命入口)
+    uint32_t streak = app_config_rst_streak_bump();
+    bool force_cfg = (streak >= RST_STREAK_LIMIT);
+    if (force_cfg) {
+        app_config_rst_streak_clear();
+        ESP_LOGW(TAG, "连续 %u 次快速复位 -> 强制进入配置模式", (unsigned)streak);
+    } else {
+        static esp_timer_handle_t streak_timer = NULL;
+        const esp_timer_create_args_t targs = {
+            .callback = rst_streak_clear_cb,
+            .name = "rst_streak",
+        };
+        if (streak_timer == NULL && esp_timer_create(&targs, &streak_timer) == ESP_OK) {
+            esp_timer_start_once(streak_timer, (int64_t)RST_STREAK_CLEAR_S * 1000000);
+        }
+    }
+
     time_sync_init();
     app_status_set_state(APP_IDLE);
 
@@ -290,6 +363,11 @@ void app_main(void)
             if (cfg->bench_mode) {
                 web_config_start(on_web_action, NULL);
                 led_set(LED_CONFIG);
+            } else if (!s_wake_from_ext1 && CFG_WINDOW_S > 0) {
+                // 非 bench 且不是被声音唤醒 (即上电/复位/连按复位):
+                // 先给一个配置窗口, 否则设成深睡后网页就再也进不来。
+                // 连按 3 次复位 = 加长窗口, 方便慢慢配。
+                cfg_window_open(force_cfg ? 300 : CFG_WINDOW_S);
             }
         } else {
             ESP_LOGW(TAG, "WiFi 连接失败, 仅本地录音");
@@ -311,17 +389,21 @@ void app_main(void)
     }
 
     // 非 bench 且启用深睡: 唤醒触发处理完就回到睡眠 (功耗优先)
-    if (!cfg->bench_mode && cfg->sleep_enable && !s_wake_from_ext1) {
+    // 但上电/复位后的配置窗口内要保持唤醒, 让用户有时间改配置。
+    if (!cfg->bench_mode && cfg->sleep_enable && !s_wake_from_ext1 && !cfg_window_active()) {
         vTaskDelay(pdMS_TO_TICKS(500));
         enter_deep_sleep();
     }
 
-    // 主循环: 维护状态显示, 非 bench 且未开深睡时保持网页可用
+    // 主循环: 维护状态显示; 配置窗口结束后自动收摊进深睡
     while (1) {
         vTaskDelay(pdMS_TO_TICKS(1000));
         if (!cfg->bench_mode && cfg->sleep_enable) {
-            // 深睡由 worker 在周期结束时处理
-            continue;
+            STATUS_SET(cfg_window_left, (uint16_t)cfg_window_left());  // 每秒刷新倒计时
+            if (s_busy) continue;                 // 正在录音/上传, 等它做完
+            if (cfg_window_active()) continue;    // 配置窗口内保持网页可用
+            ESP_LOGI(TAG, "配置窗口已结束, 进入深睡");
+            enter_deep_sleep();
         }
         if (!web_config_running() && net_wifi_connected()) {
             web_config_start(on_web_action, NULL);
