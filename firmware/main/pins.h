@@ -16,7 +16,8 @@
 #define PIN_SND_DETECT    15   // DO, 检测到声音时拉低
 
 // ---- 状态指示 & 手动触发 ----
-#define PIN_LED           47
+#define PIN_LED           47   // 外接状态 LED (串限流电阻, 高电平点亮)
+#define PIN_LED_ONBOARD   48   // 板载 LED: 阳极接 3V3, 阴极经电阻接 GPIO48, **低电平点亮**
 #define PIN_BUTTON        41   // 按下接 GND
 
 #define SD_MOUNT_POINT    "/sdcard"

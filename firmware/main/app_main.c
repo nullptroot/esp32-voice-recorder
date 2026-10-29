@@ -187,6 +187,9 @@ static void enter_deep_sleep(void)
     };
     gpio_config(&cfg);
     gpio_hold_en(PIN_SND_DETECT);
+    // 板载 LED 在深睡时保持熄灭 (低电平点亮, 拉高 + hold)
+    gpio_set_level(PIN_LED_ONBOARD, 1);
+    gpio_hold_en(PIN_LED_ONBOARD);
     gpio_deep_sleep_hold_en();
 
     esp_sleep_ext1_wakeup_mode_t mode = app_config_get()->sound_active_low

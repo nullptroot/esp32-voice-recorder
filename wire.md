@@ -47,6 +47,22 @@
 | **短脚 (− / 阴极)** | **GND** | 接地 |
 
 > 若你的板子已有板载 LED，可先用板载 LED 验证逻辑，再把 `firmware/main/pins.h` 的 `PIN_LED` 改成对应 GPIO。
+
+#### 4.1 板载 LED（GPIO48，已启用，独立于外接 LED）
+
+本板（立创 ESP32S3R8N8）自带一颗 LED：**阳极接 3.3V，阴极经限流电阻接 GPIO48，低电平点亮**
+（官方文档：[Lighting an LED](https://openkits-wiki.easyeda.com/en/esp32s3r8n8/esp-idf-beginner/led.html)）。
+
+固件已把它单独做成「**录音指示灯**」（`PIN_LED_ONBOARD`）：
+
+| 状态 | 板载 LED (GPIO48) |
+|---|---|
+| 正在录音 / VAD 预录确认 | **常亮** |
+| 其余所有状态（待机、上传、配网、深睡） | **灭** |
+
+- 响应延迟 ≤100ms（由 `led_task` 每 100ms 轮询 `app_status.state` 驱动）；
+- 深睡前会拉高 + `gpio_hold_en()`，保证睡眠期间不亮；
+- 与外接的 GPIO47 状态灯互不影响（47 仍是慢闪/快闪/双闪/常亮那套语义）。
 > 状态语义：慢闪=待机，5Hz 快闪=正在录音，每秒 3 次短亮=正在上传，常亮=配置网页模式，偶发单闪=故障。
 
 ---

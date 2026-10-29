@@ -49,6 +49,7 @@ esp32/
 | 录音时关 WiFi | `wifi_off_while_recording`（bench 模式例外） |
 | 任务绑核 | 录音 worker 固定 core 1，httpd/LED/按键在 core 0 |
 | 录音状态 LED | GPIO47，慢闪/快闪/双闪/常亮语义见 wire.md |
+| 板载录音指示灯 | GPIO48（板载 LED，低电平点亮）：录音时亮、其余灭，见 wire.md §4.1 |
 | SD 写失败 / 低空间 | 写失败即停并记录错误；<50MB 拒录，<10MB 停录 |
 | 录音状态网页 | GPIO47 LED + 内置网页实时状态 |
 | 深度睡眠 | bench 模式默认常醒；`bench_mode=false` + `sleep_enable=true` 才真睡 |
