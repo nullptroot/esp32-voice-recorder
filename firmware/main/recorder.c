@@ -297,6 +297,7 @@ esp_err_t recorder_run(rec_trigger_t trig, rec_summary_t *out)
 
     // 只有检测到过人声后才启用静音停录, 否则手动触发会在开口前就停掉
     bool speech_seen = false;
+    int consec_sp = 0;   // 连续人声帧计数 (用来滤掉瞬态噪声)
     int64_t last_speech_us = 0;
     int64_t rec_start_us = esp_timer_get_time();
     bool write_failed = false;
@@ -323,7 +324,11 @@ esp_err_t recorder_run(rec_trigger_t trig, rec_summary_t *out)
             int sp = vad_frame(&vad, s_read_buf + off, FRAME_SAMPLES);
             STATUS_SET(level_db, (int16_t)vad.last_db);
             STATUS_SET(vad_speech, sp != 0);
-            if (sp) {
+            // 只有连续 3 帧 (60ms) 判定为人声才刷新"最近说话时刻":
+            // 键盘/鼠标/开关门等瞬态噪声单帧能量也会超过阈值, 若单帧就刷新,
+            // 静音停录永远等不到 5s (实测房间噪声每 0.5s 就有一个尖峰)。
+            consec_sp = sp ? consec_sp + 1 : 0;
+            if (consec_sp >= SPEECH_CONFIRM_FRAMES) {
                 speech_seen = true;
                 last_speech_us = esp_timer_get_time();
             }
