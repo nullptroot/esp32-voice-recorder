@@ -136,22 +136,27 @@ static esp_err_t patch_header(const char *path, uint32_t data_bytes)
     if (fflush(f) != 0) ok = false;
     fclose(f);
 
-    // 校验
+    // 校验: RIFF 大小在偏移 4 处, data 大小在偏移 40 处 (此前误把两处读成连续的 8 字节,
+    // 导致每次都判失败, 日志里全是"[头部回填失败]"的假警报)
     if (ok) {
         FILE *r = fopen(path, "rb");
-        if (r) {
-            uint8_t chk[8] = {0};
-            if (fseek(r, 4, SEEK_SET) == 0) {
-                size_t n = fread(chk, 1, 8, r);
-                uint32_t riff = chk[0] | (chk[1] << 8) | (chk[2] << 16) | ((uint32_t)chk[3] << 24);
-                uint32_t data = chk[4] | (chk[5] << 8) | (chk[6] << 16) | ((uint32_t)chk[7] << 24);
-                if (n != 8 || data != data_bytes || riff == 0) {
-                    ok = false;
-                }
-            } else {
-                ok = false;
+        if (!r) {
+            ok = false;
+        } else {
+            uint8_t chk[4];
+            uint32_t riff = 0, data = 0;
+            bool ok1 = (fseek(r, 4, SEEK_SET) == 0 && fread(chk, 1, 4, r) == 4);
+            if (ok1) {
+                riff = chk[0] | (chk[1] << 8) | (chk[2] << 16) | ((uint32_t)chk[3] << 24);
+            }
+            bool ok2 = (fseek(r, 40, SEEK_SET) == 0 && fread(chk, 1, 4, r) == 4);
+            if (ok2) {
+                data = chk[0] | (chk[1] << 8) | (chk[2] << 16) | ((uint32_t)chk[3] << 24);
             }
             fclose(r);
+            if (!ok1 || !ok2 || data != data_bytes || riff != data_bytes + (WAV_HDR_SIZE - 8)) {
+                ok = false;
+            }
         }
     }
     sd_store_unlock();

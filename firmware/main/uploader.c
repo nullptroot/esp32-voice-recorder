@@ -263,7 +263,9 @@ esp_err_t uploader_upload_one(const char *name, char *msg, size_t msglen,
         int status = 0;
         esp_err_t err = do_post(url, name, (uint32_t)st.st_size, &m, &status, body, sizeof(body));
         if (err == ESP_OK && status >= 200 && status < 300) {
-            bool dup = strstr(body, "duplicate") != NULL;
+            // 注意: 响应体里永远有 "duplicate" 这个键, 必须看它的值是否为 true
+            bool dup = strstr(body, "\"duplicate\":true") != NULL ||
+                       strstr(body, "\"duplicate\": true") != NULL;
             if (out_duplicate) *out_duplicate = dup;
             if (msglen) {
                 snprintf(msg, msglen, "HTTP %d %s", status,

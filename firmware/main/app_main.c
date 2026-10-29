@@ -229,7 +229,9 @@ static void worker_task(void *arg)
         s_busy = false;
 
         const app_config_t *c = app_config_get();
-        if (!c->bench_mode && c->sleep_enable) {
+        // 注意: 必须等队列里的触发都处理完再睡。LM393 唤醒时 "开机补传 + 录音确认"
+        // 会连续入队, 若这里直接睡会把后面的录音触发丢掉 (曾导致唤醒后不录音)。
+        if (!c->bench_mode && c->sleep_enable && uxQueueMessagesWaiting(s_q) == 0) {
             enter_deep_sleep();
         }
     }
