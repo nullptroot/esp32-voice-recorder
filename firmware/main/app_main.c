@@ -126,7 +126,11 @@ static uint32_t cfg_window_left(void)
 {
     if (!s_cfg_window) return 0;
     int64_t left = (s_cfg_window_end_us - esp_timer_get_time()) / 1000000;
-    return left > 0 ? (uint32_t)left : 0;
+    if (left <= 0) {
+        s_cfg_window = false;
+        return 0;
+    }
+    return (uint32_t)left;
 }
 
 static bool cfg_window_active(void)
@@ -398,8 +402,10 @@ void app_main(void)
     // 主循环: 维护状态显示; 配置窗口结束后自动收摊进深睡
     while (1) {
         vTaskDelay(pdMS_TO_TICKS(1000));
+        // bench 模式下配置窗口没有意义 (网页本来就常驻), 直接关掉, 免得页面残留倒计时
+        if (cfg->bench_mode) s_cfg_window = false;
+        STATUS_SET(cfg_window_left, (uint16_t)cfg_window_left());   // 每秒刷新倒计时
         if (!cfg->bench_mode && cfg->sleep_enable) {
-            STATUS_SET(cfg_window_left, (uint16_t)cfg_window_left());  // 每秒刷新倒计时
             if (s_busy) continue;                 // 正在录音/上传, 等它做完
             if (cfg_window_active()) continue;    // 配置窗口内保持网页可用
             ESP_LOGI(TAG, "配置窗口已结束, 进入深睡");
