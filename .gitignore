@@ -12,3 +12,4 @@ __pycache__/
 backend-min/storage/
 # 临时
 *.log
+artifacts/
