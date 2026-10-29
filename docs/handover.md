@@ -53,7 +53,7 @@ cd /home/mr4/esp32 && git add -A && git commit -m "说明这次改了什么"
 ```
 /home/mr4/esp32
 ├── README.md                  # 速览：构建/烧录/验收清单/已知问题
-├── wire.md                    # 接线表（已补 LED=47、按键=41；LM393 实测高有效）
+├── wire.md                    # 接线表（LED=47 外接 / 板载 LED=48 / 按键=41；LM393 实测低有效）
 ├── hardware-device.md         # 原始需求文档（设备侧）
 ├── backend-server.md          # 原始需求文档（后端侧）
 ├── docs/
@@ -195,7 +195,7 @@ LM393(GPIO15,高有效) ──EXT1──► 唤醒(或网页/按键触发)
 | `main/app_config.c` | ~330 | NVS 配置 + JSON 序列化 + 钳位 | 加参数：结构体 + 默认值 + JSON + 钳位 4 处 |
 | `main/app_status.c` | 59 | 状态快照（带锁） | 新字段：`app_status.h` + 初始化 |
 | `main/web_config.c` | 431 | httpd + 全部 REST | 新接口：`uris[]` 注册 + handler |
-| `main/led_button.c` | 121 | LED 模式 + 按键短/长按 | LED 闪烁节奏 |
+| `main/led_button.c` | 121 | LED 模式 + 按键短/长按 + 板载录音灯 | LED 闪烁节奏；板载 LED(GPIO48) 录音时亮/其余灭 |
 | `main/logbuf.c` | 87 | 日志环形缓冲（`/api/log` 数据源） | — |
 | `main/index.html` | — | 配置网页前端（EMBED_TXTFILES 编进固件） | 表单字段 + `fillConfig/saveConfig` 列表 |
 | `backend-min/app.py` | 263 | 极简验收服务 | 落盘路径、DB 字段、去重键 |
