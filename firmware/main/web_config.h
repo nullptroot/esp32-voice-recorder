@@ -14,6 +14,7 @@ typedef enum {
     WEB_ACT_UPLOAD,
     WEB_ACT_HEALTH,
     WEB_ACT_REBOOT,
+    WEB_ACT_SLEEP,
 } web_action_t;
 
 typedef void (*web_action_cb_t)(web_action_t act, void *user);

@@ -28,6 +28,7 @@ typedef struct {
     char device_id[40];
     char recorded_at[48];   // 空字符串表示 null
     bool time_trusted;
+    char time_source[16];   // ntp / rtc / restored / filename / none
     char session_id[32];
     int  sequence;
     long long monotonic_ms;
@@ -41,6 +42,7 @@ static void meta_default(const char *name, file_meta_t *m)
     strncpy(m->device_id, c->device_id, sizeof(m->device_id) - 1);
     strncpy(m->session_id, "session-0000", sizeof(m->session_id) - 1);
     m->time_trusted = false;
+    strncpy(m->time_source, "none", sizeof(m->time_source) - 1);
     m->sequence = 0;
     m->monotonic_ms = 0;
 
@@ -55,6 +57,7 @@ static void meta_default(const char *name, file_meta_t *m)
                      p, p + 5, p + 8, p + 11, p + 14, p + 17);
             strncpy(m->recorded_at, iso, sizeof(m->recorded_at) - 1);
             m->time_trusted = true;
+            strncpy(m->time_source, "filename", sizeof(m->time_source) - 1);
         } else if (strncmp(p, "session-", 8) == 0) {
             const char *q = strchr(p, '_');
             size_t n = q ? (size_t)(q - p) : strlen(p);
@@ -92,6 +95,10 @@ static void meta_load(const char *name, file_meta_t *m)
     }
     it = cJSON_GetObjectItem(root, "time_trusted");
     m->time_trusted = cJSON_IsTrue(it);
+    it = cJSON_GetObjectItem(root, "time_source");
+    if (cJSON_IsString(it) && it->valuestring[0]) {
+        strncpy(m->time_source, it->valuestring, sizeof(m->time_source) - 1);
+    }
     it = cJSON_GetObjectItem(root, "session_id");
     if (cJSON_IsString(it)) {
         strncpy(m->session_id, it->valuestring, sizeof(m->session_id) - 1);
@@ -117,6 +124,9 @@ static int build_text_fields(char *buf, size_t len, const file_meta_t *m)
     n += snprintf(buf + n, len - n,
                   "\r\n--%s\r\nContent-Disposition: form-data; name=\"time_trusted\"\r\n\r\n%s",
                   BOUNDARY, m->time_trusted ? "true" : "false");
+    n += snprintf(buf + n, len - n,
+                  "\r\n--%s\r\nContent-Disposition: form-data; name=\"time_source\"\r\n\r\n%s",
+                  BOUNDARY, m->time_source[0] ? m->time_source : "none");
     n += snprintf(buf + n, len - n,
                   "\r\n--%s\r\nContent-Disposition: form-data; name=\"session_id\"\r\n\r\n%s",
                   BOUNDARY, m->session_id);

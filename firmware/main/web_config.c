@@ -34,6 +34,9 @@ static httpd_handle_t s_server = NULL;
 static web_action_cb_t s_cb = NULL;
 static void *s_cb_user = NULL;
 
+// app_main.c: 配置保存后延长配置窗口 (由主任务统一改计时)
+extern void app_cfg_window_touch(void);
+
 static void send_json(httpd_req_t *req, cJSON *root, int status)
 {
     char *out = cJSON_PrintUnformatted(root);
@@ -76,7 +79,13 @@ static void status_to_json(cJSON *o)
     cJSON_AddStringToObject(o, "state", st.state_text);
     cJSON_AddBoolToObject(o, "wifi_connected", st.wifi_connected);
     cJSON_AddStringToObject(o, "ip", st.ip);
-    cJSON_AddBoolToObject(o, "time_trusted", st.time_trusted || time_sync_trusted());
+    cJSON_AddBoolToObject(o, "time_trusted", time_sync_trusted());
+    cJSON_AddStringToObject(o, "time_source", time_sync_source());
+    if (time_sync_valid()) {
+        char tbuf[40];
+        time_sync_format_iso8601(tbuf, sizeof(tbuf), time(NULL));
+        cJSON_AddStringToObject(o, "time_now", tbuf);
+    }
     cJSON_AddNumberToObject(o, "session_id", st.session_id);
     cJSON_AddNumberToObject(o, "uptime_s", st.uptime_s);
     cJSON_AddBoolToObject(o, "sd_mounted", sd_store_mounted());
@@ -159,6 +168,10 @@ static esp_err_t h_config_post(httpd_req_t *req)
         return ESP_OK;
     }
     e = app_config_set(&cfg);
+    if (e == ESP_OK) {
+        // 配置保存成功后把配置窗口再延长 5 分钟, 避免用户还没改完就进深睡
+        app_cfg_window_touch();
+    }
     cJSON_AddBoolToObject(resp, "ok", e == ESP_OK);
     if (e != ESP_OK) {
         cJSON_AddStringToObject(resp, "error", esp_err_to_name(e));
@@ -255,6 +268,7 @@ static esp_err_t h_action(httpd_req_t *req)
     else if (strstr(uri, "upload")) act = WEB_ACT_UPLOAD;
     else if (strstr(uri, "health")) act = WEB_ACT_HEALTH;
     else if (strstr(uri, "reboot")) act = WEB_ACT_REBOOT;
+    else if (strstr(uri, "sleep")) act = WEB_ACT_SLEEP;
     else {
         cJSON *o = cJSON_CreateObject();
         cJSON_AddBoolToObject(o, "ok", false);
@@ -381,7 +395,7 @@ esp_err_t web_config_start(web_action_cb_t cb, void *user)
 
     httpd_config_t cfg = HTTPD_DEFAULT_CONFIG();
     cfg.server_port = 80;
-    cfg.max_uri_handlers = 16;
+    cfg.max_uri_handlers = 24;   // 现在有 17 个 URI, 默认 16 会静默丢弃最后一个
     cfg.stack_size = 12288;
     cfg.lru_purge_enable = true;
     cfg.uri_match_fn = httpd_uri_match_wildcard;
@@ -409,6 +423,7 @@ esp_err_t web_config_start(web_action_cb_t cb, void *user)
         { .uri = "/api/record/stop", .method = HTTP_POST, .handler = h_action },
         { .uri = "/api/upload", .method = HTTP_POST, .handler = h_action },
         { .uri = "/api/reboot", .method = HTTP_POST, .handler = h_action },
+        { .uri = "/api/sleep", .method = HTTP_POST, .handler = h_action },
     };
     for (size_t i = 0; i < sizeof(uris) / sizeof(uris[0]); i++) {
         httpd_register_uri_handler(s_server, &uris[i]);

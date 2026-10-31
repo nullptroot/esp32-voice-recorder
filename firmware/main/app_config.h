@@ -78,10 +78,11 @@ void     app_config_session_bump(void);
 uint32_t app_config_boot_session(void);
 void     app_config_set_boot_session(uint32_t v);
 
-// 连续快速复位计数 (存 NVS): 用于"连按 3 次复位进入配置模式"的救命入口。
-// 每次启动 +1; 正常运行 15 秒或进入深睡前清零。
-uint32_t app_config_rst_streak_bump(void);
-void     app_config_rst_streak_clear(void);
+// 最近一次可用的墙钟时间 (epoch 秒, NVS 持久化)。
+// 用途: 断电/UART 复位后 RTC 时间归零, 用上次已知时间兜底, 避免录音文件名回退成
+// session-XXXX。该时间不包含断电时长, 属于"近似时间", 联网后由 NTP 校正。
+uint32_t app_config_last_epoch(void);
+void     app_config_set_last_epoch(uint32_t epoch);
 
 #ifdef __cplusplus
 }

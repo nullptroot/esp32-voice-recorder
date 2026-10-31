@@ -11,7 +11,7 @@ static const char *TAG = "cfg";
 static const char *NVS_NS = "recbean";
 static const char *KEY_CFG = "cfg";
 static const char *KEY_BOOT_SESSION = "bsession";
-static const char *KEY_RST_STREAK = "rst_streak";
+static const char *KEY_LAST_EPOCH = "last_epoch";
 
 static app_config_t s_cfg;
 static nvs_handle_t s_nvs = 0;
@@ -311,31 +311,26 @@ void app_config_session_bump(void)
     s_boot_session = v;
 }
 
-// ---------------- 连续快速复位计数 ----------------
-// 用途: 设备深睡后网页打不开, 用户手边只有 RST 键/拔插 USB 时, 连按 3 次复位
-// 就能在本轮启动强制打开配置窗口 (见 app_main.c 的 cfg_window_*)。
-uint32_t app_config_rst_streak_bump(void)
+// ---------------- 最近一次可用时间 (断电重启后兜底) ----------------
+uint32_t app_config_last_epoch(void)
 {
     uint32_t v = 0;
-    if (s_nvs) {
-        if (nvs_get_u32(s_nvs, KEY_RST_STREAK, &v) != ESP_OK) {
-            v = 0;
-        }
+    if (s_nvs && nvs_get_u32(s_nvs, KEY_LAST_EPOCH, &v) == ESP_OK) {
+        return v;
     }
-    v++;
-    if (s_nvs) {
-        nvs_set_u32(s_nvs, KEY_RST_STREAK, v);
-        nvs_commit(s_nvs);
-    }
-    return v;
+    return 0;
 }
 
-void app_config_rst_streak_clear(void)
+void app_config_set_last_epoch(uint32_t epoch)
 {
-    uint32_t v = 0;
-    if (!s_nvs) return;
-    if (nvs_get_u32(s_nvs, KEY_RST_STREAK, &v) == ESP_OK && v != 0) {
-        nvs_set_u32(s_nvs, KEY_RST_STREAK, 0);
-        nvs_commit(s_nvs);
+    if (!s_nvs || epoch < 1700000000U) return;   // 小于 2023-11-14 视为无效
+    uint32_t cur = 0;
+    if (nvs_get_u32(s_nvs, KEY_LAST_EPOCH, &cur) == ESP_OK && cur == epoch) {
+        return;                                  // 值没变就不写, 省 flash 寿命
+    }
+    esp_err_t err = nvs_set_u32(s_nvs, KEY_LAST_EPOCH, epoch);
+    if (err == ESP_OK) err = nvs_commit(s_nvs);
+    if (err != ESP_OK) {
+        ESP_LOGW(TAG, "保存 last_epoch 失败: %s", esp_err_to_name(err));
     }
 }

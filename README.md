@@ -4,9 +4,12 @@
 功能需求见 [`hardware-device.md`](hardware-device.md)，后端接口契约见
 [`docs/backend-api.md`](docs/backend-api.md)。
 
+> 📌 当前状态/待办：**`docs/handover-2026-10-31.md`**；本轮改动与验证证据：
+> `docs/progress-2026-10-31.md`。
+
 ```
 esp32/
-├── wire.md                       # 接线表（本轮补充了 LED / 按键）
+├── wire.md                       # 接线表（GPIO14 配置键 / 板载 LED 停用说明）
 ├── hardware-device.md            # 需求文档
 ├── backend-server.md             # 后端设计文档（原稿）
 ├── firmware/                     # ESP-IDF v5.5 固件
@@ -19,18 +22,20 @@ esp32/
 │   │   ├── sd_store.c            # SD 挂载 / 格式化 / 文件列表 / 清理
 │   │   ├── uploader.c            # multipart 上传 + 指数退避
 │   │   ├── net_wifi.c            # WiFi STA
-│   │   ├── time_sync.c           # NTP + 时间可信度回退
+│   │   ├── time_sync.c           # NTP + 断电时间恢复 + 时间可信度
 │   │   ├── web_config.c          # 设备内置配置网页 + REST
 │   │   ├── app_config.c          # NVS 配置
 │   │   ├── app_status.c          # 运行状态快照
-│   │   ├── led_button.c          # 状态 LED + 按键
+│   │   ├── led_button.c          # 状态 LED + 按键（板载 LED 已停用）
 │   │   └── index.html            # 配置网页（编译进固件）
 │   └── host_test/vad_test.c      # PC 端 VAD 单测
 ├── backend-min/                  # 极简验收服务 (FastAPI + SQLite)
 └── docs/
     ├── backend-api.md            # 后端需要实现的完整接口协议
-    ├── verification-report.md    # 本轮验证报告
-    └── handover.md               # 交接文档（待办、调试手册、坑位）
+    ├── verification-report.md    # 10-29 晚验证报告
+    ├── progress-2026-10-31.md    # 2026-10-31 进度与验证证据
+    ├── handover-2026-10-30.md    # 上一版交接
+    └── handover-2026-10-31.md    # 当前交接文档（待办、调试手册、坑位）
 ```
 
 ---
@@ -44,15 +49,17 @@ esp32/
 | 误触发冷却窗口 | `cooldown_seconds`，VAD 未确认 → 冷却 → 不产生文件 |
 | 16k/16bit/单声道 WAV | `wav_writer.c`，44 字节标准头，关闭时回填长度 |
 | 15 分钟分段 | `segment_seconds`（默认 900，可网页改） |
-| 时间不可信回退 | NTP 失败 → `mic1_session-XXXX_partN.wav` + `time_trusted=false` |
+| 时间不可信回退 | NTP 失败 → 先用 NVS 上次时间（近似）命名；完全无时间才回退 `mic1_session-XXXX_partN.wav` + `time_trusted=false` |
 | 上传重试 / 不丢数据 | 指数退避 2/4/8/16/32s；成功前不删文件；`.up` 标记 |
 | 录音时关 WiFi | `wifi_off_while_recording`（bench 模式例外） |
 | 任务绑核 | 录音 worker 固定 core 1，httpd/LED/按键在 core 0 |
-| 录音状态 LED | GPIO47，慢闪/快闪/双闪/常亮语义见 wire.md |
-| 板载录音指示灯 | GPIO48（板载 LED，低电平点亮）：录音时亮、其余灭，见 wire.md §4.1 |
+| 录音状态 LED | GPIO47，慢闪/快闪/双闪/常亮语义见 wire.md（**当前未接线**） |
+| 板载录音指示灯 | **已停用**（GPIO48 深睡漏电常亮，软件关不断；见 wire.md §4.1，需硬件 10k 上拉） |
 | SD 写失败 / 低空间 | 写失败即停并记录错误；<50MB 拒录，<10MB 停录 |
 | 录音状态网页 | GPIO47 LED + 内置网页实时状态 |
-| 深度睡眠 | bench 模式默认常醒；`bench_mode=false` + `sleep_enable=true` 才真睡 |
+| 手动按键 | GPIO41：短按启停录音 / 长按补传（杜邦线短接 GND 即可验证） |
+| 配置/唤醒按键 | GPIO14（RTC）：深睡时按下唤醒并开 5 分钟配置窗口；醒着时短按延长窗口、长按补传 |
+| 深度睡眠 | bench 模式默认常醒；`bench_mode=false` + `sleep_enable=true` 才真睡；EXT1 唤醒脚 GPIO15(声音) / GPIO14(配置键) |
 
 > 与原文档的差异：VAD 先用轻量能量/过零率实现（本轮约定），`vad.c` 已隔离，
 > 后续替换 esp-sr VADNet 只需保持 `vad_init/vad_frame` 接口。

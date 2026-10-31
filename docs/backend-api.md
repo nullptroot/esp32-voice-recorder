@@ -82,8 +82,9 @@ Content-Disposition: form-data; name="monotonic_ms"
 |---|---|---|---|
 | `file` | file | ✅ | WAV 文件，见 §3 音频格式。文件名规则见 §4 |
 | `device_id` | string | ✅ | 设备标识，默认 `esp32s3-001`，网页可改；用于幂等/归属 |
-| `recorded_at` | string \| 空 | ✅ | ISO-8601 带时区，如 `2026-10-26T10:00:00+08:00`。**时间不可信时为空字符串**（见 §5） |
-| `time_trusted` | `"true"` \| `"false"` | ✅ | NTP 是否已同步。为 `false` 时 `recorded_at` 必为空 |
+| `recorded_at` | string \| 空 | ✅ | ISO-8601 带时区，如 `2026-10-26T10:00:00+08:00`。**时间不可信时可为空字符串**（见 §5） |
+| `time_trusted` | `"true"` \| `"false"` | ✅ | 时间是否可信（NTP 已同步，或深睡唤醒后 RTC 保持）。为 `false` 时后端**不使用** `recorded_at` |
+| `time_source` | string | 可选 | `ntp` / `rtc` / `restored` / `filename` / `none`。`restored` 表示断电重启后从 NVS 恢复的近似时间（误差=断电时长）；后端可忽略此字段，仅用于审计/排障 |
 | `session_id` | string | ✅ | 会话编号，形如 `session-0007`（每轮唤醒/每次录音递增） |
 | `sequence` | int | ✅ | 该会话内的分段序号，从 1 开始 |
 | `monotonic_ms` | int | 可选 | 设备上电后的单调毫秒数（`esp_timer`），用于时间不可信时排序 |
@@ -195,16 +196,22 @@ mic1_session-0007_part1.wav
 
 ## 5. 时间可信度语义
 
-| `time_trusted` | `recorded_at` | 后端处理 |
-|---|---|---|
-| `true` | 非空 ISO-8601 | 直接采用；仍建议与 `received_at` 做偏差校验（设备可能错时区） |
-| `false` | `""`（空串） | 用 `received_at` 推算日期；在转写/日记标记「时间不精确」 |
+| `time_trusted` | `time_source` | `recorded_at` | 后端处理 |
+|---|---|---|---|
+| `true` | `ntp` / `rtc` | 非空 ISO-8601 | 直接采用；仍建议与 `received_at` 做偏差校验（设备可能错时区） |
+| `false` | `restored` | 可为近似 ISO-8601 | **不要采用**（误差=断电时长）；用 `received_at` 推算日期，并在转写/日记标记「时间不精确」。SD 卡上的文件名仍带近似日期 |
+| `false` | `none` | `""`（空串） | 用 `received_at` 推算日期；标记「时间不精确」 |
+
+> 现有 `backend-min` 的行为：`time_trusted=false` 时一律把 `recorded_at` 置 NULL，
+> 与上表一致；`time_source` 目前只记录在设备端 `.json` 里，后端忽略。
 
 设备端逻辑：
-1. 开机连上 WiFi 后做一次 SNTP（`ntp.aliyun.com`，超时 10 s）；
+1. 开机连上 WiFi 后做 SNTP（`ntp.aliyun.com`，超时 10 s），失败则每 60 秒重试；
 2. 深睡期间 RTC 保留系统时间，唤醒后一般无需重新对时；
-3. 对时失败 → `time_trusted=false`，文件名回退为 `session-XXXX`；
-4. 网页「时间」徽标实时显示当前处于哪种状态。
+3. 断电/复位后系统时间归零 → 从 NVS 取上次已知时间兜底（`time_source=restored`），
+   文件名仍为 `mic1_YYYY-MM-DD_HH-MM-SS_partN.wav`，联网后 NTP 校正；
+4. 既无 NTP 也无 NVS 历史时间 → `time_trusted=false`，文件名回退为 `session-XXXX`；
+5. 网页「时间」徽标实时显示当前处于哪种状态（NTP / RTC / 近似 / 不可信）。
 
 ---
 

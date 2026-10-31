@@ -147,14 +147,16 @@
     <div class="chk"><input type="checkbox" id="sleep_enable"><label for="sleep_enable">启用 EXT1 深度睡眠 (bench 模式下不生效)</label></div>
     <div class="chk"><input type="checkbox" id="sound_active_low"><label for="sound_active_low">LM393 声音时输出低电平 (取消勾选=高有效)</label></div>
     <p style="font-size:12px;color:var(--dim);line-height:1.6">
-      EXT1 唤醒脚: GPIO15 (LM393 DO, 低电平有效)。非 bench 模式下, 录音与上传结束后进入深睡,
-      由 LM393 拉低 GPIO15 唤醒。<br>
+      EXT1 唤醒脚: <b>GPIO15</b> (LM393 DO, 低电平有效) + <b>GPIO14</b> (配置键, 按下接 GND)。<br>
+      非 bench 模式下, 录音与上传结束后进入深睡。<br>
       ⚠️ <b>深睡时网页不可用</b>。要改配置：<b>上电/复位（拔插 USB 或按 RST）后 120 秒内</b>打开本页；
-      或者<b>连续快速复位 3 次</b>进入 5 分钟配置模式。
+      或者按<b>配置键 GPIO14</b>（另一端接 GND）—— 深睡时按下会直接唤醒并开 5 分钟配置窗口；
+      窗口打开期间短按配置键可再延长 5 分钟。
     </p>
     <div class="row" style="margin-top:10px">
       <button class="primary" onclick="saveConfig()">💾 保存配置</button>
       <button onclick="reloadConfig()">↻ 重新读取</button>
+      <button class="danger" onclick="if(confirm('立即进入深睡?'))act('/api/sleep')">💤 立即深睡</button>
       <button class="danger" onclick="if(confirm('确定格式化 SD 卡? 所有录音将丢失'))act('/api/format','{\"confirm\":\"YES\"}')">格式化 SD</button>
       <button class="danger" onclick="if(confirm('重启设备?'))act('/api/reboot')">重启</button>
     </div>
@@ -264,8 +266,16 @@ async function refresh() {
     $('b-wifi').textContent = 'WiFi: ' + (s.wifi_connected ? '已连接' : '未连接');
     $('b-wifi').className = 'badge' + (s.wifi_connected ? ' on' : '');
     $('b-ip').textContent = 'IP: ' + (s.ip || '-');
-    $('b-time').textContent = '时间: ' + (s.time_trusted ? 'NTP 已同步' : '不可信(会话编号)');
-    $('b-time').className = 'badge' + (s.time_trusted ? ' on' : '');
+    const timeSrc = {
+      ntp: 'NTP 已同步',
+      rtc: 'RTC 保持 (深睡唤醒)',
+      restored: '近似 (断电恢复)',
+      none: '不可信 (会话编号)'
+    };
+    const tsrc = s.time_source || (s.time_trusted ? 'ntp' : 'none');
+    $('b-time').textContent = '时间: ' + (timeSrc[tsrc] || tsrc);
+    $('b-time').className = 'badge' + ((tsrc === 'ntp' || tsrc === 'rtc') ? ' on' : '');
+    $('b-time').title = s.time_now || '';
     const cw = s.cfg_window_left || 0;
     if (cw > 0) {
       $('b-cfgwin').style.display = '';
@@ -290,6 +300,8 @@ async function refresh() {
     if (s.last_error) msgs.push('⚠ ' + s.last_error);
     if (s.last_upload) msgs.push('✓ 最近上传: ' + s.last_upload);
     if (s.state === 'recording') msgs.push('● 正在录音 ' + s.record_seconds + 's');
+    if (s.time_source === 'restored') msgs.push('⏱ 当前是断电恢复的近似时间, 联网后会自动 NTP 校正');
+    if (s.state === 'cooldown') msgs.push('⏳ VAD 误触发冷却中');
     $('s-msg').innerHTML = msgs.join('<br>');
   } catch(e) { $('b-state').textContent = '状态: 连接失败'; }
 }

@@ -55,7 +55,7 @@ static esp_err_t open_part(part_t *p, int part_index, const char *session_str,
                            uint32_t rate, const char **out_name)
 {
     static char s_fname[SD_NAME_LEN];
-    if (time_sync_trusted()) {
+    if (time_sync_valid()) {
         char ts[32];
         time_sync_format_fname(ts, sizeof(ts), time(NULL));
         snprintf(s_fname, sizeof(s_fname), "mic1_%s_part%d.wav", ts, part_index);
@@ -101,13 +101,20 @@ static void drop_empty_part(const char *wav_name, uint32_t bytes)
 }
 
 static void write_meta(const char *wav_name, int part_index, uint32_t seconds,
-                       bool trusted, const char *session_str, time_t rec_time,
-                       uint32_t rate)
+                       const char *session_str, time_t rec_time, uint32_t rate)
 {
     char meta_name[SD_NAME_LEN + 8];
     snprintf(meta_name, sizeof(meta_name), "%s.json", wav_name);
+
+    // time_trusted: NTP 或深睡 RTC 保持 => true; 从 NVS 恢复的近似时间 => false。
+    // recorded_at 在时间"可用"时都会填 (近似时间也填), 便于 SD 卡上的人工追溯;
+    // 上传时后端仍以 time_trusted 决定是否采用 recorded_at。
+    bool valid = time_sync_valid();
+    bool trusted = time_sync_trusted();
+    const char *source = time_sync_source();
+
     char iso[48] = "null";
-    if (trusted) {
+    if (valid) {
         char t[40];
         time_sync_format_iso8601(t, sizeof(t), rec_time);
         snprintf(iso, sizeof(iso), "\"%s\"", t);
@@ -115,9 +122,10 @@ static void write_meta(const char *wav_name, int part_index, uint32_t seconds,
     char json[512];
     snprintf(json, sizeof(json),
              "{\"device_id\":\"%s\",\"recorded_at\":%s,\"time_trusted\":%s,"
+             "\"time_source\":\"%s\","
              "\"session_id\":\"%s\",\"sequence\":%d,\"monotonic_ms\":%lld,"
              "\"duration_sec\":%u,\"sample_rate\":%u,\"channels\":1,\"bits\":16}",
-             app_config_get()->device_id, iso, trusted ? "true" : "false",
+             app_config_get()->device_id, iso, trusted ? "true" : "false", source,
              session_str, part_index,
              (long long)(esp_timer_get_time() / 1000),
              (unsigned)seconds, (unsigned)rate);
@@ -201,7 +209,6 @@ esp_err_t recorder_run(rec_trigger_t trig, rec_summary_t *out)
     const char *cur_name = NULL;
     int part_index = 0;
     time_t part_time = time(NULL);
-    bool trusted = time_sync_trusted();
 
     // ---------- 阶段 1: 预录 + VAD 二次确认 ----------
     if (need_confirm) {
@@ -346,7 +353,7 @@ esp_err_t recorder_run(rec_trigger_t trig, rec_summary_t *out)
             wav_close(&part.wav);
             part.open = false;
             if (bytes > 0 && part_size_ok(closed_name, bytes)) {
-                write_meta(closed_name, part_index, secs, trusted, session_str, part_time, rate);
+                write_meta(closed_name, part_index, secs, session_str, part_time, rate);
                 out->parts++;
                 out->total_seconds += secs;
                 out->written_bytes += bytes;
@@ -364,7 +371,6 @@ esp_err_t recorder_run(rec_trigger_t trig, rec_summary_t *out)
             }
             part_index++;
             part_time = time(NULL);
-            trusted = time_sync_trusted();
             if (open_part(&part, part_index, session_str, rate, &cur_name) != ESP_OK) {
                 STATUS_STR(last_error, "分段创建失败");
                 write_failed = true;
@@ -414,7 +420,7 @@ esp_err_t recorder_run(rec_trigger_t trig, rec_summary_t *out)
             out->aborted = true;
             err = ESP_FAIL;
         } else {
-            write_meta(closed_name, part_index, secs, trusted, session_str, part_time, rate);
+            write_meta(closed_name, part_index, secs, session_str, part_time, rate);
             out->parts++;
             out->total_seconds += secs;
             out->written_bytes += bytes;
