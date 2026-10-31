@@ -1,0 +1,232 @@
+{
+  "project": "录音豆 RecBean — 宣传素材包",
+  "generated_by": "marketing/tools/gen_placeholders.py",
+  "video": {
+    "width": 1080,
+    "height": 1920,
+    "fps": 30,
+    "ratio": "9:16"
+  },
+  "photos": [
+    {
+      "id": "P01",
+      "file": "assets/photos/p01-hero.png",
+      "width": 1080,
+      "height": 1920,
+      "title": "封面主图 · 成品 3/4 视角",
+      "brief": "未来 PCB「录音豆」悬浮于深色桌面 / 单 LED 环 / USB-C",
+      "status": "placeholder"
+    },
+    {
+      "id": "P02",
+      "file": "assets/photos/p02-bom-flatlay.png",
+      "width": 1080,
+      "height": 1350,
+      "title": "BOM 全家福 · 俯拍平铺",
+      "brief": "ESP32-S3 板 + INMP441 + LM393 + MicroSD + 杜邦线，等距排列",
+      "status": "placeholder"
+    },
+    {
+      "id": "P03",
+      "file": "assets/photos/p03-wiring-overview.png",
+      "width": 1080,
+      "height": 1440,
+      "title": "接线全景 · 杜邦线阶段",
+      "brief": "面包板俯拍，四模块走线清晰可辨，能看懂谁连谁",
+      "status": "placeholder"
+    },
+    {
+      "id": "P04",
+      "file": "assets/photos/p04-module-macro.png",
+      "width": 1080,
+      "height": 1080,
+      "title": "模块特写 · 1:1",
+      "brief": "INMP441 麦克风正脸 / SD 卡座 / LM393 电位器，浅景深",
+      "status": "placeholder"
+    },
+    {
+      "id": "P05",
+      "file": "assets/photos/p05-pcb-concept.png",
+      "width": 1080,
+      "height": 1920,
+      "title": "成品概念图 · 自绘 PCB",
+      "brief": "圆形磨砂黑外壳、直径 ~40mm、可 AI 出图（标注「概念图」）",
+      "status": "placeholder"
+    },
+    {
+      "id": "P06",
+      "file": "assets/photos/p06-webui.png",
+      "width": 1080,
+      "height": 1920,
+      "title": "设备配置网页 · 手机截图",
+      "brief": "真机 http://<ip>/ 页面，实时电平 + 参数 + 文件列表",
+      "status": "placeholder"
+    },
+    {
+      "id": "P07",
+      "file": "assets/photos/p07-backend.png",
+      "width": 1080,
+      "height": 1920,
+      "title": "后端上传记录 · 截图",
+      "brief": "backend-min 上传列表，能看到文件名带时间戳",
+      "status": "placeholder"
+    },
+    {
+      "id": "P08",
+      "file": "assets/photos/p08-sleep-current.png",
+      "width": 1080,
+      "height": 1440,
+      "title": "深睡电流 · 万用表读数",
+      "brief": "µA 级读数特写，红黑表笔接供电回路",
+      "status": "placeholder"
+    },
+    {
+      "id": "P09",
+      "file": "assets/photos/p09-size-compare.png",
+      "width": 1080,
+      "height": 1080,
+      "title": "尺寸对比 · 1:1",
+      "brief": "与硬币 / 耳机盒 / 打火机并排，体现「豆」的大小",
+      "status": "placeholder"
+    },
+    {
+      "id": "P10",
+      "file": "assets/photos/p10-lifestyle.png",
+      "width": 1080,
+      "height": 1920,
+      "title": "使用场景 · 生活化",
+      "brief": "床头柜 / 车内 / 桌面，设备融入环境，暖光",
+      "status": "placeholder"
+    }
+  ],
+  "posters": [
+    {
+      "id": "F01",
+      "file": "assets/frames/f01-voice-trigger.png",
+      "width": 1080,
+      "height": 1920,
+      "title": "静帧 V01 · 声音触发",
+      "brief": "手机竖拍：拍手 → 设备开始录音，画面含设备与手",
+      "status": "placeholder"
+    },
+    {
+      "id": "F02",
+      "file": "assets/frames/f02-web-live-level.png",
+      "width": 1080,
+      "height": 1920,
+      "title": "静帧 V02 · 网页实时电平",
+      "brief": "竖屏录屏：网页电平条随说话跳动，状态 recording",
+      "status": "placeholder"
+    },
+    {
+      "id": "F03",
+      "file": "assets/frames/f03-upload-success.png",
+      "width": 1080,
+      "height": 1920,
+      "title": "静帧 V03 · 上传成功",
+      "brief": "竖屏录屏：文件列表出现 .up，后端收到文件",
+      "status": "placeholder"
+    },
+    {
+      "id": "F04",
+      "file": "assets/frames/f04-sleep-power.png",
+      "width": 1080,
+      "height": 1920,
+      "title": "静帧 V04 · 深睡功耗",
+      "brief": "手机拍：万用表 µA 读数 + 设备静止，可加字幕标注",
+      "status": "placeholder"
+    },
+    {
+      "id": "F05",
+      "file": "assets/frames/f05-config-wake.png",
+      "width": 1080,
+      "height": 1920,
+      "title": "静帧 V05 · 配置键唤醒",
+      "brief": "手机拍：杜邦线点 GPIO14 → 手机重新打开网页",
+      "status": "placeholder"
+    },
+    {
+      "id": "F06",
+      "file": "assets/frames/f06-serial-log.png",
+      "width": 1080,
+      "height": 1920,
+      "title": "静帧 V06 · 串口日志",
+      "brief": "竖屏录屏：日志滚动到「NTP 对时成功 / 上传成功」",
+      "status": "placeholder"
+    }
+  ],
+  "videos": [
+    {
+      "id": "V01",
+      "file": "assets/videos/v01-voice-trigger.mp4",
+      "poster": "assets/frames/f01-voice-trigger.png",
+      "duration_s": 12,
+      "width": 1080,
+      "height": 1920,
+      "fps": 30,
+      "brief": "声音触发自动录音：拍手/说话 → 设备开始录，无手动操作",
+      "tips": "手机竖拍，画面同时有设备和手；环境声保留，别配乐；结束后保留 1s 静帧",
+      "status": "missing"
+    },
+    {
+      "id": "V02",
+      "file": "assets/videos/v02-web-live-level.mp4",
+      "poster": "assets/frames/f02-web-live-level.png",
+      "duration_s": 10,
+      "width": 1080,
+      "height": 1920,
+      "fps": 30,
+      "brief": "网页实时状态：电平条随说话跳动，状态 recording，文件数增加",
+      "tips": "手机竖屏录屏（系统录屏），浏览器打开真机 IP，说话时录，避免通知弹窗",
+      "status": "missing"
+    },
+    {
+      "id": "V03",
+      "file": "assets/videos/v03-upload-success.mp4",
+      "poster": "assets/frames/f03-upload-success.png",
+      "duration_s": 8,
+      "width": 1080,
+      "height": 1920,
+      "fps": 30,
+      "brief": "上传成功：SD 文件出现 .up 标记，后端列表新增一条带时间戳记录",
+      "tips": "竖屏录屏，先录设备文件列表，再切后端页面；两段可后期拼接",
+      "status": "missing"
+    },
+    {
+      "id": "V04",
+      "file": "assets/videos/v04-sleep-power.mp4",
+      "poster": "assets/frames/f04-sleep-power.png",
+      "duration_s": 8,
+      "width": 1080,
+      "height": 1920,
+      "fps": 30,
+      "brief": "深睡功耗：万用表 µA 读数稳定，设备无动作",
+      "tips": "手机竖拍，表笔/读数必须清晰可读；可后期放大读数并叠加字幕",
+      "status": "missing"
+    },
+    {
+      "id": "V05",
+      "file": "assets/videos/v05-config-wake.mp4",
+      "poster": "assets/frames/f05-config-wake.png",
+      "duration_s": 8,
+      "width": 1080,
+      "height": 1920,
+      "fps": 30,
+      "brief": "配置键唤醒：杜邦线点 GPIO14 → 手机刷新网页成功",
+      "tips": "一镜到底最能打：先拍手按 GPIO14，再切手机屏幕亮起网页",
+      "status": "missing"
+    },
+    {
+      "id": "V06",
+      "file": "assets/videos/v06-serial-log.mp4",
+      "poster": "assets/frames/f06-serial-log.png",
+      "duration_s": 6,
+      "width": 1080,
+      "height": 1920,
+      "fps": 30,
+      "brief": "串口日志 B-roll：滚动到 NTP 对时成功 / 上传成功 / EXT1 唤醒",
+      "tips": "竖屏录屏终端，字号调大；只截取有信息量的 6 秒",
+      "status": "missing"
+    }
+  ]
+}

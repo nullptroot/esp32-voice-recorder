@@ -1,0 +1,10 @@
+V04 视频占位
+====================
+期望文件: assets/videos/v04-sleep-power.mp4
+静帧占位: assets/frames/f04-sleep-power.png
+时长: 8s   画幅: 1080x1920 (9:16)   帧率: 30fps   编码: H.264 / yuv420p
+内容: 深睡功耗：万用表 µA 读数稳定，设备无动作
+拍摄要点: 手机竖拍，表笔/读数必须清晰可读；可后期放大读数并叠加字幕
+
+补齐方式: 把真实视频命名为 v04-sleep-power.mp4 放到 assets/videos/ 即可，
+Remotion 里把 SHOT_READY.V04 置为 true，就会从静帧切换到 <OffthreadVideo>。
