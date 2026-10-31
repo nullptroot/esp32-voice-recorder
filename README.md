@@ -6,6 +6,7 @@
 
 > 📌 当前状态/待办：**`docs/handover-2026-10-31.md`**；本轮改动与验证证据：
 > `docs/progress-2026-10-31.md`。
+> 📌 项目介绍 / 宣传素材 / Remotion 视频提示词：**`marketing/`**（从 `marketing/README.md` 开始）。
 
 ```
 esp32/
