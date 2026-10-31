@@ -24,7 +24,7 @@ fi
 # id | 输出文件 | 静帧 | 时长
 SHOTS=(
   "V01|v01-voice-trigger.mp4|f01-voice-trigger.png|12"
-  "V02|v02-web-live-level.mp4|f02-web-live-level.png|10"
+  "V02|v02-web-log.mp4|f02-web-log.png|10"
   "V03|v03-upload-success.mp4|f03-upload-success.png|8"
   "V04|v04-sleep-power.mp4|f04-sleep-power.png|8"
   "V05|v05-config-wake.mp4|f05-config-wake.png|8"

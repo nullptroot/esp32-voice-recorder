@@ -1,0 +1,10 @@
+V02 视频占位
+====================
+期望文件: assets/videos/v02-web-log.mp4
+静帧占位: assets/frames/f02-web-log.png
+时长: 10s   画幅: 1080x1920 (9:16)   帧率: 30fps   编码: H.264 / yuv420p
+内容: 网页设备日志：点「刷新日志」后出现「VAD 确认人声 (能量 … dB)」，状态 recording，文件列表 +1
+拍摄要点: 手机竖屏录屏：先开始录音、说一句话，再点「刷新日志」，让日志停在那一行 2 秒；别开通知
+
+补齐方式: 把真实视频命名为 v02-web-log.mp4 放到 assets/videos/ 即可，
+Remotion 里把 SHOT_READY.V02 置为 true，就会从静帧切换到 <OffthreadVideo>。

@@ -59,7 +59,7 @@
       "width": 1080,
       "height": 1920,
       "title": "设备配置网页 · 手机截图",
-      "brief": "真机 http://<ip>/ 页面，实时电平 + 参数 + 文件列表",
+      "brief": "真机 http://<ip>/ 页面：状态 + 设备日志 + 文件列表",
       "status": "placeholder"
     },
     {
@@ -165,11 +165,11 @@
     },
     {
       "id": "F02",
-      "file": "assets/frames/f02-web-live-level.png",
+      "file": "assets/frames/f02-web-log.png",
       "width": 1080,
       "height": 1920,
-      "title": "静帧 V02 · 网页实时电平",
-      "brief": "竖屏录屏：网页电平条随说话跳动，状态 recording",
+      "title": "静帧 V02 · 网页日志",
+      "brief": "竖屏录屏：点「刷新日志」出现「VAD 确认人声」，文件列表 +1",
       "status": "placeholder"
     },
     {
@@ -233,14 +233,14 @@
     },
     {
       "id": "V02",
-      "file": "assets/videos/v02-web-live-level.mp4",
-      "poster": "assets/frames/f02-web-live-level.png",
+      "file": "assets/videos/v02-web-log.mp4",
+      "poster": "assets/frames/f02-web-log.png",
       "duration_s": 10,
       "width": 1080,
       "height": 1920,
       "fps": 30,
-      "brief": "网页实时状态：电平条随说话跳动，状态 recording，文件数增加",
-      "tips": "手机竖屏录屏（系统录屏），浏览器打开真机 IP，说话时录，避免通知弹窗",
+      "brief": "网页设备日志：点「刷新日志」后出现「VAD 确认人声 (能量 … dB)」，状态 recording，文件列表 +1",
+      "tips": "手机竖屏录屏：先开始录音、说一句话，再点「刷新日志」，让日志停在那一行 2 秒；别开通知",
       "status": "missing"
     },
     {
