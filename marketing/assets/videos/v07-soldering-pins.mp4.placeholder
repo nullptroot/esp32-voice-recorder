@@ -1,0 +1,10 @@
+V07 视频占位
+====================
+期望文件: assets/videos/v07-soldering-pins.mp4
+静帧占位: assets/frames/f07-soldering.png
+时长: 20s   画幅: 1080x1920 (9:16)   帧率: 30fps   编码: H.264 / yuv420p
+内容: 焊排针：给焊盘上锡 → 排针插入 → 逐针焊接 → 检查焊点
+拍摄要点: 手机俯拍/侧拍 4K 60，固定机位；可 2× 加速到 10s；收一点烙铁环境音即可，别配乐
+
+补齐方式: 把真实视频命名为 v07-soldering-pins.mp4 放到 assets/videos/ 即可，
+Remotion 里把 SHOT_READY.V07 置为 true，就会从静帧切换到 <OffthreadVideo>。

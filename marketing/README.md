@@ -12,9 +12,10 @@
 | 1 | [`01-项目介绍.md`](01-项目介绍.md) | 项目是干嘛的、为什么做、值多少钱、现在什么进度 |
 | 2 | [`02-技术实现与问题修复.md`](02-技术实现与问题修复.md) | 架构 + 踩坑的「现象/根因/修复」，视频硬核素材 |
 | 3 | [`03-素材清单与拍摄指南.md`](03-素材清单与拍摄指南.md) | 要拍哪些照片/视频、怎么拍、怎么替换 |
-| 4 | [`04-Remotion-视频提示词.md`](04-Remotion-视频提示词.md) | **直接粘给 AI**，生成 90s 竖屏片 |
+| 4 | [`04-Remotion-视频提示词.md`](04-Remotion-视频提示词.md) | **直接粘给 AI**，生成 115s 竖屏片（12 段逐帧分镜） |
 | 5 | [`05-AI-配图提示词.md`](05-AI-配图提示词.md) | 文生图 / 图生图的 prompt 和红线 |
 | 6 | [`06-旁白与字幕脚本.md`](06-旁白与字幕脚本.md) | 逐句口播、屏幕大字、封面文案、发布文案 |
+| 7 | [`narration/README.md`](narration/README.md) | **配音专用**：逐段 TTS 文本、读法处理、S2 Pro 参数 |
 
 ---
 
@@ -29,14 +30,20 @@ marketing/
 ├── 04-Remotion-视频提示词.md
 ├── 05-AI-配图提示词.md
 ├── 06-旁白与字幕脚本.md
+├── narration/                     配音输入（一个场景一个 txt）
+│   ├── vo-01.txt … vo-12.txt     直接喂 TTS
+│   ├── vo-full.txt               整段版
+│   ├── segments.json             目标时长 / 字数 / 语速
+│   └── README.md                 读法处理 + S2 Pro 参数
 ├── assets/
-│   ├── manifest.json              机器可读的素材清单（16 张图 + 6 段视频）
-│   ├── photos/                    10 张照片占位（真实 PNG，1080 宽）
-│   ├── frames/                     6 张视频静帧占位（1080×1920）
-│   └── videos/                     6 个 *.mp4.placeholder 规格说明
+│   ├── manifest.json              机器可读的素材清单（16 图 + 7 静帧 + 7 视频）
+│   ├── photos/                    16 张照片占位（真实 PNG，1080 宽）
+│   ├── frames/                     7 张视频静帧占位（1080×1920）
+│   └── videos/                     7 个 *.mp4.placeholder 规格说明
 └── tools/
     ├── gen_placeholders.py        重新生成占位图 / manifest
-    └── make-placeholder-videos.sh 用 ffmpeg 把静帧变成可渲染的占位 mp4
+    ├── make-placeholder-videos.sh 用 ffmpeg 把静帧变成可渲染的占位 mp4
+    └── check_voice_durations.py   校验配音时长，给出 playbackRate
 ```
 
 ---
@@ -51,15 +58,23 @@ bash marketing/tools/make-placeholder-videos.sh
 ```
 
 把 `marketing/assets/` 整个拷到 Remotion 工程的 `public/assets/`，
-然后把 `04-Remotion-视频提示词.md` 从「一、任务」到「九、验收」整段粘给 AI。
+然后把 `04-Remotion-视频提示词.md` 从「一、任务」到「十、验收」整段粘给 AI。
 
-### 第 2 步：补真实素材
+### 第 2 步：生成配音 + 补真实素材
 
-按 `03-素材清单与拍摄指南.md` 拍完，**同名覆盖**：
+配音：`narration/vo-01.txt ~ vo-12.txt` 逐段喂 S2 Pro，导出 `vo-01.wav ~ vo-12.wav`，
+再跑一次时长校验：
+
+```bash
+python3 marketing/tools/check_voice_durations.py
+```
+
+拍素材：按 `03-素材清单与拍摄指南.md` 拍完，**同名覆盖**：
 
 - 照片 → `assets/photos/pXX-*.png`
 - 视频 → `assets/videos/vXX-*.mp4`
-- 然后把 `src/config.ts` 里对应 `SHOT_READY.Vxx = true`
+- 配音 → `public/audio/vo-XX.wav`
+- 然后把 `src/config.ts` 里对应 `SHOT_READY.Vxx = true`、`AUDIO_READY = true`
 
 ### 第 3 步：出片
 
@@ -74,10 +89,12 @@ npx remotion still RecBeanPromo out/cover.png --frame=0
 
 | 类型 | 数量 | 状态 |
 |---|---:|---|
-| 照片占位（PNG） | 10 | ✅ 已生成，等实拍/AI 替换 |
-| 视频静帧（PNG） | 6 | ✅ 已生成，可直接缓推成片 |
-| 视频（mp4） | 6 | ⏳ 待补（规格见 `assets/videos/*.placeholder`） |
-| 音频（BGM/口播/SFX） | — | ⏳ 待补，Remotion 里用开关降级 |
+| 照片占位（PNG） | 16 | ✅ 已生成，等实拍/AI 替换 |
+| 视频静帧（PNG） | 7 | ✅ 已生成，可直接缓推成片 |
+| 视频（mp4） | 7 | ⏳ 待补（含焊排针 V07，规格见 `assets/videos/*.placeholder`） |
+| 口播文本（txt） | 12 段 | ✅ 已按 TTS 读法处理好 |
+| 口播音频（wav） | 12 段 | ⏳ 待生成（S2 Pro → `vo-XX.wav`） |
+| BGM / SFX | — | ⏳ 待补，Remotion 里用开关降级 |
 
 机器可读清单：`assets/manifest.json`（含每张图的尺寸、用途、状态）。
 

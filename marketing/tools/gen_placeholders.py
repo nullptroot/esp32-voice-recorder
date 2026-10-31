@@ -57,6 +57,18 @@ ASSETS = [
      "尺寸对比 · 1:1", "与硬币 / 耳机盒 / 打火机并排，体现「豆」的大小", "photo", "cyan"),
     ("P10", "photos/p10-lifestyle.png", 1080, 1920,
      "使用场景 · 生活化", "床头柜 / 车内 / 桌面，设备融入环境，暖光", "photo", "cyan"),
+    ("P11", "photos/p11-order-1.png", 1080, 1920,
+     "订单截图 1 · 主控 + 麦克风", "立创/淘宝订单页，遮住姓名电话地址，只露商品与价格", "photo", "cyan"),
+    ("P12", "photos/p12-order-2.png", 1080, 1920,
+     "订单截图 2 · 声音检测 + 存储", "LM393 模块、MicroSD 模块与 TF 卡订单", "photo", "cyan"),
+    ("P13", "photos/p13-order-3.png", 1080, 1920,
+     "订单截图 3 · 电源 + 电池", "TP4056、1000mAh 电池订单", "photo", "cyan"),
+    ("P14", "photos/p14-order-4.png", 1080, 1920,
+     "订单截图 4 · 杂项 + 合计", "杜邦线、排针、按键等杂项；最好能截到「合计」金额", "photo", "cyan"),
+    ("P15", "photos/p15-solder-setup.png", 1080, 1440,
+     "焊接工位 · 开工前", "电烙铁、焊锡、助焊剂、裸板排针，俯拍整齐摆放", "photo", "cyan"),
+    ("P16", "photos/p16-solder-done.png", 1080, 1080,
+     "焊好的排针 · 特写", "排针焊点饱满、无连锡，侧逆光拍出焊点反光", "photo", "cyan"),
 
     # ---------- 视频静帧（poster） ----------
     ("F01", "frames/f01-voice-trigger.png", 1080, 1920,
@@ -71,6 +83,8 @@ ASSETS = [
      "静帧 V05 · 配置键唤醒", "手机拍：杜邦线点 GPIO14 → 手机重新打开网页", "frame", "orange"),
     ("F06", "frames/f06-serial-log.png", 1080, 1920,
      "静帧 V06 · 串口日志", "竖屏录屏：日志滚动到「NTP 对时成功 / 上传成功」", "frame", "orange"),
+    ("F07", "frames/f07-soldering.png", 1080, 1920,
+     "静帧 V07 · 焊排针", "手机拍：烙铁尖、焊锡、排针入孔，烟雾与焊点反光", "frame", "orange"),
 ]
 
 
@@ -95,6 +109,9 @@ VIDEOS = [
     ("V06", "v06-serial-log.mp4", "frames/f06-serial-log.png", 6,
      "串口日志 B-roll：滚动到 NTP 对时成功 / 上传成功 / EXT1 唤醒",
      "竖屏录屏终端，字号调大；只截取有信息量的 6 秒"),
+    ("V07", "v07-soldering-pins.mp4", "frames/f07-soldering.png", 20,
+     "焊排针：给焊盘上锡 → 排针插入 → 逐针焊接 → 检查焊点",
+     "手机俯拍/侧拍 4K 60，固定机位；可 2× 加速到 10s；收一点烙铁环境音即可，别配乐"),
 ]
 
 

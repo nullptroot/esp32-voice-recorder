@@ -29,6 +29,7 @@ SHOTS=(
   "V04|v04-sleep-power.mp4|f04-sleep-power.png|8"
   "V05|v05-config-wake.mp4|f05-config-wake.png|8"
   "V06|v06-serial-log.mp4|f06-serial-log.png|6"
+  "V07|v07-soldering-pins.mp4|f07-soldering.png|20"
 )
 
 for row in "${SHOTS[@]}"; do
