@@ -26,10 +26,9 @@ SHOTS=(
   "V01|v01-voice-trigger.mp4|f01-voice-trigger.png|12"
   "V02|v02-web-log.mp4|f02-web-log.png|10"
   "V03|v03-upload-success.mp4|f03-upload-success.png|8"
-  "V04|v04-sleep-power.mp4|f04-sleep-power.png|8"
-  "V05|v05-config-wake.mp4|f05-config-wake.png|8"
-  "V06|v06-serial-log.mp4|f06-serial-log.png|6"
-  "V07|v07-soldering-pins.mp4|f07-soldering.png|20"
+  "V04|v04-config-wake.mp4|f04-config-wake.png|8"
+  "V05|v05-serial-log.mp4|f05-serial-log.png|6"
+  "V06|v06-soldering-pins.mp4|f06-soldering.png|20"
 )
 
 for row in "${SHOTS[@]}"; do

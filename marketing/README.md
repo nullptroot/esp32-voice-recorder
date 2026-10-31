@@ -36,10 +36,10 @@ marketing/
 │   ├── segments.json             目标时长 / 字数 / 语速
 │   └── README.md                 读法处理 + S2 Pro 参数
 ├── assets/
-│   ├── manifest.json              机器可读的素材清单（16 图 + 7 静帧 + 7 视频）
+│   ├── manifest.json              机器可读的素材清单（16 图 + 6 静帧 + 6 视频）
 │   ├── photos/                    16 张照片占位（真实 PNG，1080 宽）
-│   ├── frames/                     7 张视频静帧占位（1080×1920）
-│   └── videos/                     7 个 *.mp4.placeholder 规格说明
+│   ├── frames/                     6 张视频静帧占位（1080×1920）
+│   └── videos/                     6 个 *.mp4.placeholder 规格说明
 └── tools/
     ├── gen_placeholders.py        重新生成占位图 / manifest
     ├── make-placeholder-videos.sh 用 ffmpeg 把静帧变成可渲染的占位 mp4
@@ -90,8 +90,8 @@ npx remotion still RecBeanPromo out/cover.png --frame=0
 | 类型 | 数量 | 状态 |
 |---|---:|---|
 | 照片占位（PNG） | 16 | ✅ 已生成，等实拍/AI 替换 |
-| 视频静帧（PNG） | 7 | ✅ 已生成，可直接缓推成片 |
-| 视频（mp4） | 7 | ⏳ 待补（含焊排针 V07，规格见 `assets/videos/*.placeholder`） |
+| 视频静帧（PNG） | 6 | ✅ 已生成，可直接缓推成片 |
+| 视频（mp4） | 6 | ⏳ 待补（含焊排针 V06，规格见 `assets/videos/*.placeholder`） |
 | 口播文本（txt） | 12 段 | ✅ 已按 TTS 读法处理好 |
 | 口播音频（wav） | 12 段 | ⏳ 待生成（S2 Pro → `vo-XX.wav`） |
 | BGM / SFX | — | ⏳ 待补，Remotion 里用开关降级 |

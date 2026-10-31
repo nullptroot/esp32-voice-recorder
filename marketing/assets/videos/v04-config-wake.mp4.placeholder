@@ -1,0 +1,10 @@
+V04 视频占位
+====================
+期望文件: assets/videos/v04-config-wake.mp4
+静帧占位: assets/frames/f04-config-wake.png
+时长: 8s   画幅: 1080x1920 (9:16)   帧率: 30fps   编码: H.264 / yuv420p
+内容: 深睡唤醒：手机刷新网页失败 → 杜邦线点 GPIO14 → 页面加载出来
+拍摄要点: 一镜到底最有说服力：先拍手机转圈，再拍手按键，最后拍网页出现；中间不要剪
+
+补齐方式: 把真实视频命名为 v04-config-wake.mp4 放到 assets/videos/ 即可，
+Remotion 里把 SHOT_READY.V04 置为 true，就会从静帧切换到 <OffthreadVideo>。
