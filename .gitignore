@@ -6,6 +6,7 @@ firmware/managed_components/
 # 虚拟环境
 .venv-backend/
 backend-min/.venv-backend/
+backend/.venv/
 __pycache__/
 *.pyc
 # 运行数据
@@ -13,3 +14,20 @@ backend-min/storage/
 # 临时
 *.log
 artifacts/
+
+# ---- 宣传视频生成：只在本地，不入库 ----
+marketing/_video-gen-local/
+marketing/04-Remotion-视频提示词.md
+marketing/06-旁白与字幕脚本.md
+marketing/narration/
+marketing/tools/
+marketing/work/
+marketing/audio/
+marketing/recbean-promo/
+marketing/assets/videos/
+marketing/lanyangyang.wav
+*.mp4
+*.placeholder
+
+# 本地备份
+.videogen-backup/

@@ -1,0 +1,57 @@
+{
+  "asr": {
+    "base_url": "http://asr:10095",
+    "timeout": 900,
+    "engine_name": "funasr-paraformer-zh",
+    "hotword": "",
+    "batch_size_s": 300,
+    "auto_transcribe": true,
+    "max_retry": 3,
+    "dedup_overlap_seconds": 2.0
+  },
+  "llm": {
+    "base_url": "https://api.deepseek.com/v1",
+    "api_key": "",
+    "model": "deepseek-chat",
+    "temperature": 0.4,
+    "max_tokens": 4096,
+    "timeout": 180,
+    "extra_headers": {},
+    "chunk_chars": 12000,
+    "system_prompt": "",
+    "user_prompt": "",
+    "daily_time": "22:00",
+    "auto_summary": true,
+    "summary_lookback_days": 1
+  },
+  "push": {
+    "channels": {
+      "bark": {"enabled": false, "url": "https://api.day.app", "key": "", "sound": "", "group": "录音豆", "icon": ""},
+      "serverchan": {"enabled": false, "sendkey": "", "channel": ""},
+      "pushplus": {"enabled": false, "token": "", "topic": "", "template": "markdown"},
+      "ntfy": {"enabled": false, "url": "https://ntfy.sh", "topic": "", "token": "", "priority": "default", "tags": "memo"},
+      "dingtalk": {"enabled": false, "webhook": "", "secret": "", "at_mobiles": "", "msgtype": "markdown"},
+      "feishu": {"enabled": false, "webhook": "", "secret": ""},
+      "wecom": {"enabled": false, "webhook": ""}
+    },
+    "content_mode": "summary",
+    "title_template": "🎙 录音豆 · {date} 总结",
+    "public_base_url": "",
+    "on_success_only": true
+  },
+  "retention": {
+    "audio_days": 30,
+    "transcript_days": 0,
+    "cleanup_time": "03:30"
+  },
+  "web": {
+    "username": "admin",
+    "password": "recbean",
+    "timezone": "Asia/Shanghai"
+  },
+  "device": {
+    "require_token": false,
+    "tokens": [],
+    "default_device_id": "esp32s3-001"
+  }
+}

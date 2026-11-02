@@ -1,0 +1,64 @@
+name: recbean
+
+# 录音豆后端 · 正式编排
+#   用法: docker compose -f deploy/docker-compose.yml up -d
+#
+# 说明（腾讯云国内 2C/3.6G 无 GPU）：
+#   - FunASR 容器模型常驻约 2.3~2.9GB 内存，未设硬上限，避免被 OOM 杀掉；
+#     宿主机其余服务合计约 350MB，整体可放下。
+#   - 基础镜像若拉不动 Docker Hub，用 docker.m.daocloud.io/library/ 前缀。
+services:
+  backend:
+    build:
+      context: ..
+      dockerfile: deploy/Dockerfile.backend
+    image: recbean-backend:1.0
+    container_name: recbean-backend
+    restart: unless-stopped
+    ports:
+      - "0.0.0.0:8010:8000"          # ← 设备 server_url 填 http://<公网IP>:8010
+    environment:
+      TZ: Asia/Shanghai
+      DATA_DIR: /data
+      ASR_URL: http://recbean-asr:10095
+      # 首次部署可用环境变量初始化（之后以 Web 配置为准）
+      # LLM_BASE_URL: https://tokenhub.tencentmaas.com/plan/v3
+      # LLM_MODEL: deepseek-v4.1-flash-1017
+      # LLM_API_KEY: sk-xxx
+      # WEB_USERNAME: admin
+      # WEB_PASSWORD: recbean
+      # UPLOAD_TOKEN: ""             # 非空则启用 X-Upload-Token 校验
+    volumes:
+      - ../data:/data
+    depends_on:
+      - asr
+    mem_limit: 512m
+    logging:
+      driver: json-file
+      options: { max-size: "20m", max-file: "3" }
+
+  asr:
+    build:
+      context: ..
+      dockerfile: deploy/Dockerfile.asr
+    image: recbean-asr:1.0
+    container_name: recbean-asr
+    restart: unless-stopped
+    environment:
+      TZ: Asia/Shanghai
+      ASR_MODEL_DIR: /models
+      MODELSCOPE_CACHE: /models/ms-cache
+      ASR_NUM_THREADS: "2"
+      ASR_PRELOAD: "1"
+      ASR_DEVICE: cpu
+      SKIP_MODEL_DOWNLOAD: "0"     # 首次启动从 ModelScope 下载约 1GB 模型
+    volumes:
+      - ../data/models:/models
+    mem_swappiness: 10
+    logging:
+      driver: json-file
+      options: { max-size: "20m", max-file: "3" }
+
+networks:
+  default:
+    name: recbean-net

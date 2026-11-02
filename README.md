@@ -6,7 +6,8 @@
 
 > 📌 当前状态/待办：**`docs/handover-2026-10-31.md`**；本轮改动与验证证据：
 > `docs/progress-2026-10-31.md`。
-> 📌 项目介绍 / 宣传素材 / Remotion 视频提示词：**`marketing/`**（从 `marketing/README.md` 开始）。
+> 📌 项目介绍 / 宣传素材：**`marketing/`**（从 `marketing/README.md` 开始；视频生成部分只在本地维护）。
+> 📌 服务器后端（转写 / 每日总结 / 多渠道推送 / 配置 Web）：**`backend/`**（从 `backend/README.md` 开始）。
 
 ```
 esp32/
@@ -31,6 +32,12 @@ esp32/
 │   │   └── index.html            # 配置网页（编译进固件）
 │   └── host_test/vad_test.c      # PC 端 VAD 单测
 ├── backend-min/                  # 极简验收服务 (FastAPI + SQLite)
+├── backend/                      # 正式后端：FunASR 转写 + 大模型每日总结 + 多渠道推送 + 配置 Web
+│   ├── app/                      # FastAPI 主服务（设备接口 / 管理 API / 调度器）
+│   ├── deploy/                   # Dockerfile.backend / Dockerfile.asr / compose / start.sh
+│   ├── scripts/                  # sim_device.py（设备模拟）/ e2e_test.py（全链路验证）
+│   ├── data/samples/             # 公开示例音频（其余 data/ 均在 .gitignore 中）
+│   └── docs/                     # 后端交接 / 进度 / 验收 / 跳过规则
 └── docs/
     ├── backend-api.md            # 后端需要实现的完整接口协议
     ├── verification-report.md    # 10-29 晚验证报告
@@ -93,7 +100,21 @@ idf.py -p /dev/ttyUSB0 -b 460800 flash monitor
 冷却时间、上传策略、保留天数、bench/深睡模式；并可在线开始/停止录音、立即上传、
 格式化 SD、查看实时电平和文件列表、设备日志。
 
-## 4. 极简验收服务
+## 4. 后端服务
+
+### 4.1 正式后端 `backend/`
+设备 → `POST /upload` → FunASR 本地转写 → 大模型每日总结 → 多渠道推送，全部配置可在 Web 后台改。
+部署、配置、接口与排错见 [`backend/README.md`](backend/README.md)，安全规范见 [`backend/SECURITY.md`](backend/SECURITY.md)。
+
+```bash
+cd backend
+./deploy/start.sh                       # 构建 + 启动（后端 8010 + FunASR 10095，仅内网）
+curl -s http://127.0.0.1:8010/health
+```
+
+> `backend/data/`（配置 Key / 录音 / 转写 / 日记 / 数据库 / 1.2GB 模型）一律不入库，仅 `data/samples/` 的官方样例音频提交。
+
+### 4.2 极简验收服务 `backend-min/`（早期版本，仍可用于快速联调）
 
 ```bash
 cd backend-min
